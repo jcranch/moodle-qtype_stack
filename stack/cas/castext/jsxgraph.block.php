@@ -101,8 +101,14 @@ class stack_cas_castext_jsxgraph extends stack_cas_castext_block {
         // Empty tags seem to be an issue.
         $this->get_node()->convert_to_text(html_writer::tag('div', '', $attributes));
 
-        $PAGE->requires->js_amd_inline('require(["qtype_stack/jsxgraph","qtype_stack/jsxgraphcore-lazy","core/yui"], '
-            . 'function(stack_jxg, JXG, Y){Y.use("mathjax",function(){'.$code.'});});');
+        $PAGE->requires->js_amd_inline('require([' .
+            '"qtype_stack/jsxgraphlocal",' .
+            '"qtype_stack/jsxgraph",' .
+            '"qtype_stack/jsxgraphcore-lazy",' .
+            '"core/yui"' .
+            '], ' .
+            'function(JXL,stack_jxg, JXG, Y) { ' .
+            'Y.use("mathjax",function(){'.$code.'});});');
 
         // Up the graph number to generate unique names.
         self::$countgraphs = self::$countgraphs + 1;
