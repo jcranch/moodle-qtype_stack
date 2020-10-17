@@ -6,3 +6,4 @@ load("diff.mac");
 load("finmap.mac");
 load("functions.mac");
 load("mcq.mac");
+load("two_d_critical.mac");
