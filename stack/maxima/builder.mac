@@ -1,0 +1,17 @@
+/* For builder questions, the teacher answer field is a list
+ * of lists of the form [key, phrase, pos] where
+ * phrase and key are strings, and pos is a nonnegative
+ * integer.  
+ */
+
+builder_add_pos(opts) := block([],
+ makelist(endcons(i,opts[i]),i,1,length(opts))
+)$
+
+builder_correct(opts) := block(
+ [oo,o],
+ oo : sublist(opts,lambda([o],o[3] > 0)),
+ oo : sort(oo,lambda([p,q],ev(p[3] < q[3],pred))),
+ return(map(first,oo))
+)$
+
