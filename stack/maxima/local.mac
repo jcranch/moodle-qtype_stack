@@ -1,3 +1,4 @@
 /* Site-specific Maxima code can be put here */
 
 load("diff.mac");
+load("finmap.mac");

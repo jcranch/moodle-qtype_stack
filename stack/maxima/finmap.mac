@@ -1,0 +1,171 @@
+/* This file contains code for dealing with questions about maps
+ * between finite sets, especially the properties of injectivity,
+ * surjectivity and bijectivity.  
+ */
+
+/* Here A, B and f should be lists, with the entries in A being
+ * distinct, and the entries in B also being deistinct.
+ * We interpret f as the list of values of a map A -> B (so the
+ * length of f should be the same as that of A, and the entries
+ * of f should be a subset of the entries of B).
+ */
+make_finmap(A,B,f,[opts_]) := block(
+ [i,j,nA,nB,A_set,B_set,img,is_inj,is_surj,is_bij,
+  fibre,fibres,index_fibre,index_fibres,nf,f0,
+  noninj_witness,nonsurj_witness,F],
+ simp : true,
+ if (not(listp(A) and listp(B) and listp(f) and
+         length(f) = length(A) and
+	 length(setify(A)) = length(A) and
+	 length(setify(B)) = length(B) and
+	 setdifference(setify(f),setify(B)) = {})) then (
+  return(false)
+ ),
+ nA : length(A),
+ nB : length(B),
+ A_set : setify(A),
+ B_set : setify(B),
+ img : setify(f),
+
+ f0 : [],
+ for i from 1 thru nA do (
+  for j from 1 thru nB do (
+   if (f[i] = B[j]) then (
+    f0 : endcons(j,f0)
+   )
+  )
+ ),
+ 
+ is_inj : true,
+ is_surj : true,
+ noninj_witness : false,
+ nonsurj_witness : false,
+ inverse : [],
+ 
+ index_fibres : [],
+ fibres : [],
+ for j from 1 thru nB do (
+  index_fibre : [],
+  fibre : [],
+  for i from 1 thru nA do (
+   if (f[i] = B[j]) then (
+    index_fibre : endcons(i,index_fibre),
+    fibre : endcons(A[i],fibre)
+   )
+  ),
+  index_fibres : endcons(index_fibre,index_fibres),
+  fibres : endcons(fibre,fibres),
+  nf : length(fibre),
+  if (nf > 0) then (
+   inverse : endcons(first(fibre),inverse)
+  ) else (
+   inverse : endcons(false,inverse)
+  ),
+
+  if (is_inj and nf > 1) then (
+   is_inj : false,
+   noninj_witness : [j,B[j],index_fibre,fibre]
+  ),
+
+  if (is_surj and nf = 0) then (
+   is_surj : false,
+   nonsurj_witness : [j,B[j]]
+  )
+ ),
+ 
+ is_bij : ev(is_inj and is_surj,pred),
+
+ F : ["stack_map",
+      ["domain_list",A],
+      ["domain_size",nA],
+      ["domain_set",A_set],
+      ["codomain_list",B],
+      ["codomain_size",nB],
+      ["codomain_set",B_set],
+      ["value_list",f],
+      ["index_value_list",f0],
+      ["image_set",img],
+      ["fibres",fibres],
+      ["index_fibres",index_fibres],
+      ["inverse",inverse],
+      ["is_injective",is_inj],
+      ["is_surjective",is_surj],
+      ["is_bijective",is_bij],
+      ["noninjective_witness",noninj_witness],
+      ["nonsurjective_witness",nonsurj_witness]],
+
+ return(F)
+)$
+
+finmap_javascript(F) := block(
+ [],
+ niw : stackmap_get(F,"noninjective_witness"),
+ nsw : stackmap_get(F,"nonsurjective_witness"),
+ if (listp(niw)) then (niw : [niw[1],niw[3]]),
+ if (listp(nsw)) then (nsw : [nsw[1]]),
+
+ string0(s) :=  if stringp(s) or integerp(s) then s else string(s),
+ 
+ return(sconcat(
+  "{",newline,
+  "domain:",string(map(string0,stackmap_get(F,"domain_list"))),",",newline,
+  "domain_size:",string(stackmap_get(F,"domain_size")),",",newline,
+  "codomain:",string(map(string0,stackmap_get(F,"codomain_list"))),",",newline,
+  "codomain_size:",string(stackmap_get(F,"codomain_size")),",",newline,
+  "value_list:",string(map(string0,stackmap_get(F,"value_list"))),",",newline,
+  "index_value_list:",string(stackmap_get(F,"index_value_list")),",",newline,
+  "image:",string(map(string0,listify(stackmap_get(F,"image_set")))),",",newline,
+  "index_fibres:",string(stackmap_get(F,"index_fibres")),",",newline,
+  "is_injective:",string(stackmap_get(F,"is_injective")),",",newline,
+  "is_surjective:",string(stackmap_get(F,"is_surjective")),",",newline,
+  "is_bijective:",string(stackmap_get(F,"is_bijective")),",",newline,
+  "noninjective_witness:",string(niw),newline,
+  "nonsurjective_witness:",string(nsw),newline,
+  "}"
+ ))
+)$
+
+finmap_plot(F,[opts_]) := block(
+ [],
+ oo : ["stack_map",
+       ["object_name","A"],
+       ["domain_name","A"],
+       ["domain_x",0],
+       ["domain_y0",0],
+       ["domain_dy",1],
+       ["domain_radius",0.1],
+       ["domain_color","red"],
+       ["domain_label_offset",-2],
+       ["codomain_name","B"],
+       ["codomain_x",1],
+       ["codomain_y0",0],
+       ["codomain_dy",1],
+       ["domain_radius",0.1],
+       ["domain_color","red"],
+       ["domain_label_offset",-2],
+       ["map_name","f"],
+       ["map_label_x", 0.5],
+       ["map_label_y",-0.5]],
+ keys : map(lambda([u],u[1]),rest(oo)),
+ if (length(opts_) > 0) then (
+  opts : opts_[1],
+  for k in keys do (
+   v : stackmap_get(opts,k),
+   if (not(v = und)) then (
+    oo : stackmap_set(oo,k,v)
+   )
+  )
+ ),
+
+ A : stackmap_get(F,"domain"),
+ B : stackmap_get(F,"codomain"),
+ f : stackmap_get(F,"value_list"),
+
+ if (not(finmap_args_ok(A,B,f))) then (return("")),
+ js : "",
+
+ nA : length(A),
+ nB : length(B),
+
+ O : stackmap_get(oo,"object_name")
+)$
