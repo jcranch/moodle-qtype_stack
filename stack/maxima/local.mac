@@ -8,4 +8,3 @@ load("functions.mac");
 load("mcq.mac");
 load("two_d_critical.mac");
 load("partial_fractions.mac");
-
