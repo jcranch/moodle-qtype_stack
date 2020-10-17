@@ -1,3 +1,3 @@
 /* Site-specific Maxima code can be put here */
 
-read("partial_fractions.mac");
+load("partial_fractions.mac");
