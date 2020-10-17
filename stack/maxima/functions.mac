@@ -1,0 +1,304 @@
+/* Find a numerical root of a univariate function.  This is not very
+ * rigorous or efficient, but it should be sufficient for the kinds
+ * of functions appearing in undergraduate teaching.  It only looks
+ * in the range [-1000,1000].  We use our own, very crude,
+ * pseudorandomisation to avoid disturbing other kinds of
+ * pseudorandomisation used by Stack.
+ */
+search_root(f,x)  := block([df,xp,yp,xm,ym,xb,yb,add_val,nstep],
+  df: diff(f,x),
+
+  /* As soon as we have found some values where f(x) >= 0,
+   * we will set yp to be the smallest nonnegative value of f(x) that
+   * we have seen, and xp to be the point where we found it.
+   * As soon as we have found some values where f(x) <= 0,
+   * we will set ym to be the largest nonpositive value of f(x) that
+   * we have seen, and xm to be the point where we found it.
+   * As soon as we have both xp and xm, we will use Maxima's
+   * built in find_root function to find a root between them.
+   * Also, yb will minimise |f(x)| among the points so far
+   * considered, and xb will be the corresponding x value.
+   */
+   
+  xp: false, yp: false, xm: false, ym: false,xb: false, yb: false,steps : 100,
+
+  /* Evaluate f(t) and adjust xp,yp,xm,ym,xb,yb accordingly */
+  add_val: lambda([t],block([ft],
+    ft: ev(subst(x=t,f),numer),
+    if (ft >= 0) then (
+      if (xp = false or ft < yp) then (xp: t, yp: ft)
+    ),
+    if (ft <= 0) then (
+      if (xm = false or ft > ym) then (xm: t, ym: ft)
+    ),
+    if (xb = false or (abs(ft) < abs(yb))) then (
+      xb: t, yb: ft
+    ),
+    steps : steps - 1
+  )),
+
+  /* Try a Newton-Raphson step starting at xb.  If that looks bad then
+   * jump pseudorandomly instead.
+   */   
+  nstep: lambda([t],block([ft,dft,t1],
+    ft: ev(subst(x=t,f),numer),
+    dft: ev(subst(x=t,df),numer),
+    ok: false,
+    if (abs(dft) > 1E-20) then (
+     t1: t - ft/dft,
+     ok: is(abs(t1) < 1000)
+    ),
+    if(not(ok)) then (
+      t1 :  (steps + 5) * sqrt(2.0),
+      t1 : (t1 - floor(t1) - 0.5) * 2000
+    ),
+   return(t1)
+  )),
+
+  /* Start at an initial point that is unlikely to have any special properties. */
+  add_val(0.123456),
+  
+  while(steps > 0 and (xp = false or xm = false)) do (
+    if (not(xp = false)) then (add_val(nstep(xp))),
+    if (not(xm = false)) then (add_val(nstep(xm)))
+  ),
+  if (xp = false or xm = false) then (
+   if (abs(yb) < 1E-10) then (
+    /* If all values seen have the same sign, then we accept xb provided that
+     * yb is small enough.
+     */
+    return (xb)
+   ) else (
+    return(false)
+   )
+  ) else (
+   return(find_root(f,x,xm,xp))
+  )
+)$
+
+/* We assume that a function is everywhere positive if it is positive at
+ * one point and we cannot find a root.  
+ */
+everywhere_positivep(f,x) := block([a,b],
+ a: search_root(f,x),
+ if (not(a = false)) then (return(false)),
+ b: ev(subst(x = 0.123456,f),simp,numer),
+ if (not(real_numberp(b)) or ev(b <= 0,pred)) then (return(false)),
+ return(true)
+)$
+
+/* We assume that a function is everywhere nonnegative if it is
+ * nonnegative at one point and we cannot find a root, or if we
+ * can find a root and the derivative is very small at that root.
+ */
+everywhere_nonnegativep(f,x) := block([a,b,c],
+ a: search_root(f,x),
+ if (a = false) then (
+  b: ev(subst(x = 0.123456),f,simp,numer),
+  if (not(real_numberp(b)) or ev(b < 0,pred)) then (return(false)),
+  return(true)
+ ) else (
+  c: ev(abs(subst(x = a,diff(f,x))),simp,numer),
+  if (c > 1E-10) then (
+    return(false)
+  ) else (
+    return(true)
+  )
+ )
+)$
+
+even_functionp(f,x) := ATAlgEquiv(f,subst(x = -x,f))[2]$
+odd_functionp(f,x)  := ATAlgEquiv(f, - subst(x = -x,f))[2]$
+
+everywhere_negativep(f,x)      := everywhere_positivep(-f,x)$
+everywhere_nonpositivep(f,x)   := everywhere_nonnegativep(-f,x)$
+everywhere_increasingp(f,x)    := everywhere_positivep(diff(f,x),x)$
+everywhere_nondecreasingp(f,x) := everywhere_nonnegativep(diff(f,x),x)$
+everywhere_decreasingp(f,x)    := everywhere_negativep(diff(f,x),x)$
+everywhere_nonincreasingp(f,x) := everywhere_nonpositivep(diff(f,x),x)$
+
+/* Helper functions for questions that ask students to identify
+ * a function, given the graph and a list of options.  The idea
+ * is to give feedback on incorrect answers by explaining features
+ * that are not shared by the target function.
+ */
+ 
+function_id_check(sa,ta,key,known) := block([u,v,m],
+ key0: first(key),
+ key1: rest(key),
+ known0 : stackmap_get(known,key),
+ u : stackmap_get(known0,sa),
+ v : stackmap_get(known0,ta),
+ if (u = und) then (
+  u : apply(concat('function_id_prop_,key0),cons(sa,key1))
+ ),
+ if (v = und) then (
+  v : apply(concat('function_id_prop_,key0),cons(ta,key1))
+ ),
+ if (u = true and v = false) then (
+  return(apply(concat('function_id_msg_,key0),append([tex1(sa),"f(x)"],key1)))
+ ) elseif (u = false and v = true) then (
+  return(apply(concat('function_id_msg_,key0),append(["f(x)",tex1(sa)],key1)))
+ ) else (
+  return("")
+ )
+)$
+
+function_id_check_list_alt(f,g,checklist,known) := block([c,m],
+ m: "",
+ for c in checklist do (
+  m : function_id_check(f,g,c,known),
+  if (not(m = "")) then (return(m))
+ ),
+ return(m)
+)$
+
+function_id_check_list(f,g,checklist) :=
+ function_id_check_list_alt(f,g,checklist,["stack_map"])$
+
+function_id_known(Klist) := block([known,known0,ff,f,c,c0,b0],
+ known: ["stack_map"],
+ for ff in Klist do (
+  f: first(ff),
+  for c in rest(ff) do (
+   c0: rest(c,-1),
+   b0: last(c),
+   known0: stackmap_get(known,c0),
+   if (known0 = und) then (
+    known: stackmap_set(known,c0,["stack_map",[f,b0]])
+   ) else (
+    known: stackmap_set(known,c0,stackmap_set(known0,f,b0))
+   )
+  )
+ ),
+ return(known)
+)$
+
+function_id_preprocess(Flist,Plist) := block([Klist,Klist0,f,c,u],
+ Klist: [],
+ for f in Flist do(
+  Klist0: [],
+  for c in Plist do(
+   u : apply(concat('function_id_prop_,first(c)),cons(f,rest(c))),
+    if (u = true or u = false) then (
+     Klist0: append(Klist0,[append(c,[u])])
+    )
+  ),
+ if (length(Klist0) > 0) then (Klist: append(Klist,[append([f],Klist0)]))
+),
+ return(Klist)
+)$
+
+function_id_prop_value(f,a,b) := ATAlgEquiv(limit(f,x,a),b)[2]$
+function_id_prop_flat(f,a) := ATAlgEquiv(limit(diff(f,x),x,a),0)[2]$
+function_id_prop_continuous(f,a) := continuousp(f,x,a)$
+function_id_prop_positive(f,a) := block([b],b:limit(f,x,a), return(ev(real_numberp(b) and is(b > 0),pred)))$
+function_id_prop_negative(f,a) := block([b],b:limit(f,x,a), return(ev(real_numberp(b) and is(b < 0),pred)))$
+function_id_prop_periodic(f,a) := ATAlgEquiv(subst(x=x+a,f),f)[2]$
+function_id_prop_bounded_above_by(f,a) := everywhere_nonnegativep(a - f,x)$
+function_id_prop_bounded_below_by(f,a) := everywhere_nonnegativep(f - a,x)$
+function_id_prop_increasing(f) := nondecreasingp(f,x)$
+function_id_prop_decreasing(f) := nonincreasingp(f,x)$
+function_id_prop_even(f) := even_functionp(f,x)$
+function_id_prop_odd(f) := odd_functionp(f,x)$
+function_id_prop_bounded_above(f) := und$
+function_id_prop_bounded_below(f) := und$
+
+function_id_msg_value(A,B,a,b) := sconcat(
+  "The function \\(",A,"\\) is equal to \\(",tex1(b),"\\) when \\(x=",
+  tex1(a),"\\), but the function \\(",B,"\\) is not."
+)$
+
+function_id_msg_flat(A,B,a) := sconcat(
+ "The function \\(",A,"\\) is flat (i.e. the derivative is zero) when \\(x=",
+ tex1(a),"\\), but the function \\(",B,"\\) is not."
+)$
+
+function_id_msg_continuous(A,B,a) := sconcat(
+ "The function \\(",A,"\\) is finite and continuous at \\(x=",
+ tex1(a),"\\), but the function \\(",B,"\\) is not."
+)$
+
+function_id_msg_positive(A,B,a) := sconcat(
+ "The function \\(",A,"\\) is finite and strictly positive at \\(x=",
+ tex1(a),"\\), but the function \\(",B,"\\) is not."
+)$
+
+function_id_msg_negative(A,B,a) := sconcat(
+ "The function \\(",A,"\\) is finite and strictly negative at \\(x=",
+ tex1(a),"\\), but the function \\(",B,"\\) is not."
+)$
+
+function_id_msg_periodic(A,B,a) := sconcat(
+ "The function \\(",A,"\\) repeats with period \\(",
+ tex1(a),"\\), but the function \\(",B,"\\) does not."
+)$
+
+function_id_msg_bounded_above_by(A,B,a) := sconcat(
+ "The function \\(",A,"\\) is bounded above by \\(",
+ tex1(a),"\\), but the function \\(",B,"\\) is not."
+)$
+
+function_id_msg_bounded_below_by(A,B,a) := sconcat(
+ "The function \\(",A,"\\) is bounded below by \\(",
+ tex1(a),"\\), but the function \\(",B,"\\) is not."
+)$
+
+function_id_msg_bounded_above(A,B) := sconcat(
+ "The function \\(",A,"\\) is bounded above, but the function \\(",B,"\\) is not."
+)$
+
+function_id_msg_bounded_below(A,B) := sconcat(
+ "The function \\(",A,"\\) is bounded above, but the function \\(",B,"\\) is not."
+)$
+
+function_id_msg_increasing(A,B) := sconcat(
+ "The function \\(",A,"\\) is an increasing function, but the function \\(",B,"\\) is not."
+)$
+
+function_id_msg_decreasing(A,B) := sconcat(
+ "The function \\(",A,"\\) is a decreasing function, but the function \\(",B,"\\) is not."
+)$
+
+function_id_msg_even(A,B) := sconcat(
+ "The function \\(",A,"\\) is an even function, but the function \\(",B,"\\) is not."
+)$
+
+function_id_msg_odd(A,B) := sconcat(
+ "The function \\(",A,"\\) is an odd function, but the function \\(",B,"\\) is not."
+)$
+
+
+/* This function accepts a subset or sublist of
+ * {"injective","surjective","bijective"}, and returns a message if
+ * the answer is inconsistent with the definition
+ * bijective = (injective and surjective).
+ */
+ 
+jective_msg(ans,[fname_]) := block([fname,i,s,b,an,fb0,fb1,fb],
+ fname : "the map",
+ if (length(fname_) > 0) then fname : first(fname_),
+ fb0 : sconcat("You said that ",fname," is "),
+ fb1 : sconcat(
+  "This does not make any sense, because &ldquo;bijective&rdquo; just  ",
+  "means &ldquo;injective and also surjective&rdquo;."
+ ),
+
+ an : "",
+ fb : "",
+ i : member("injective",ans),
+ s : member("surjective",ans),
+ b : member("bijective",ans),
+ if (i and s and not(b)) then (
+  an : "is-b",
+  fb : sconcat(fb0," injective and surjective but not bijective. ",fb1)
+ ) elseif (b and not(i)) then (
+  an : "b-i",
+  fb : sconcat(fb0," bijective but not injective. ",fb1)
+ ) elseif (b and not(s)) then (
+  an : "b-s",
+  fb : sconcat(fb0," bijective but not surjective. ",fb1)
+ ),
+
+ return([an,fb])
+)$

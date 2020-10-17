@@ -2,3 +2,4 @@
 
 load("diff.mac");
 load("finmap.mac");
+load("functions.mac");
