@@ -1,0 +1,354 @@
+/* Helper function for multiple choice questions
+ */
+mcq_options(opts,ta) := map(lambda([o],[o,ev(o = ta,simp,pred)]),opts)$
+
+/* We have a few questions using this but they should be refactored */
+mrl_setup(true_opts,false_opts,num_opts) := block([opts,note],
+  [opts,right_opts,note] : mr_setup(true_opts,false_opts,num_opts),
+  opts: mcq_add_labels(opts),
+  return([opts,mcq_correct(opts),note])    
+)$
+
+/* This is a different set of helper functions for multiple choice
+ * or multiple response questions.
+ *
+ * Option sets for such questions come in several different forms:
+ *
+ * 1) A bare list like [40,41,42,43]
+ * 2) A boolean list like [[40,false],[41,false],[42,true],[43,false]],
+ *     containing information about which options are correct.
+ * 3) A displayed list like [[40,"forty"],[41,"forty one"],[42,"forty two"]],
+ *     containing information about how to display the options to the student
+ * 4) A boolean displayed list like
+ *     [[40,false,"forty"],[41,false,"forty one"],[42,true,"forty two"]]
+ * 5) A boolean labelled list like
+ *     [[A,false,"(A) 40"],[B,false,"(B) 41"],[C,true,"(C) 42"]]
+ * 6) A boolean list with feedback like
+ *     [[40,false,"You fool!"],[41,false,"Ugh"],[42,true,"Very wise."]]
+ *
+ * Items should always appear in the following order:
+ *  The answer or label; the truth value; the display string;
+ *   feedback; the answer note.
+ *
+ * The answer can be a mathematical expression (such as a number) or a
+ * string, which may contain LaTeX.  However, various things go wrong
+ * if our final option set contains LaTeX strings as answers. To avoid
+ * this, we need to use the function mcq_add_labels() to convert to
+ * labelled form, where the LaTeX only appears in the display string,
+ * and the answer is just a symbol A,B,C or .... However, labels should
+ * only be added after performing various other transformations as
+ * described below.
+ *
+ * If we start with a non-boolean list then it will generally be the first
+ * step to add boolean values using the function mcq_add_bool() or
+ * mcq_add_bool_test().  This will always insert the boolean values in
+ * the second position, pushing any other entries out to the right.
+ *
+ * We may then want to select a random subset of options or just
+ * shuffle all options into a random order.  Both tasks are achieved using
+ * the shuffle() function.
+ *
+ * After that, we can use mcq_add_labels() to convert to labelled form.
+ * Note that the student's answer will then be a symbol like A,B or C,
+ * and the mapping from those symbols to the actual answers may depend
+ * on how the question was randomised.  A typical pattern of use would
+ * be to set up an option set opts0 and then do
+ * opts1 : shuffle(opts0,4); opts2 : mcq_add_labels(opts1);
+ * Then in the marking code we can do opt : unlabel(ans,opts1) to
+ * set opt equal to the entry in opts0 corresponding to the student's
+ * answer.
+ *
+ * If we have an option set with display strings followed by feedback
+ * (and possibly answer notes) then we can use it in a radio input
+ * element and Stack will just ignore the extra fields.  However,
+ * if we have no display strings then Stack will treat the feedback
+ * as a display string, which is not what we want.  In that case we
+ * need to use the mcq_trim() function to create a version of the
+ * list that can be used by stack.
+ *
+ * The function mcq_feedback() can be used to analyse various
+ * aspects of the student's answer.  It has the prefix mcq for
+ * consistency, but is really only useful for multiple response
+ * questions.
+ */
+
+/* This function adds boolean flags to an option set that does
+ * not already have them.  The argument test is supposed to
+ * be a boolean-valued function that returns the required
+ * boolean values.  Note that it returns a new option set
+ * rather than modifying the old one in place.
+ */
+mcq_add_bool_test(opts,f) := block([o],
+ o: opts,
+ if (not(every(listp,o))) then (o: map("[",o)),
+ o: map(lambda([x],cons(x[1],cons(ev(f(x[1]),simp,pred),rest(x)))),o),
+ return(o)
+)$
+
+mcq_add_bool(opts,right_opt) := block([o],
+ o: opts,
+ if (not(every(listp,o))) then (o: map("[",o)),
+ o: map(lambda([x],cons(x[1],cons(ev(x[1]=right_opt,simp,pred),rest(x)))),o),
+ return(o)
+)$
+
+mrq_add_bool(opts,right_opts) := block([o],
+ o: opts,
+ if (not(every(listp,o))) then (o: map("[",o)),
+ o: map(lambda([x],cons(x[1],cons(ev(member(x[1],right_opts),simp,pred),rest(x)))),o),
+ return(o)
+)$
+
+/* Given an option set opts of length n, and an integer k in [1,n],
+ * this will generate a pair [p,opts1].  Here p will be a list of
+ * k distinct indices taken from 1,..,n in random order, and 
+ * opts1 will be the corresponding list of entries in opts.
+ */
+ 
+mcq_shuffle(opts,[k_]) := block([n,p,v,i],
+ if (not(listp(opts))) then (return(false)),
+ n : length(opts),
+ k : n,
+ if (length(k_) > 0) then (k : first(k_)),
+ if not(integerp(k) and k > 0 and k <= n) then (k : n),
+ p : random_permutation(makelist(i,i,1,n)),
+ p : makelist(p[i],i,1,k),
+ opts1 : makelist(opts[p[i]],i,1,k),
+ return([p,opts1])
+)$
+
+/* This should be removed when we have refactored questions that use it */
+shuffle : mcq_shuffle$
+
+mcq_add_labels(opts) := block([simp,o,n,oo,i,u],
+ o: opts,
+ if (not(every(listp,o))) then (
+  o: map(lambda([u],[u,false]),o)
+ ),
+ 
+ o: map(lambda([x],if (stringp(x[1])) then x else (cons(tex1(x[1]),rest(x)))),o),
+ simp: true,
+ n: length(o),
+ oo : [],
+ for i from 1 thru n do (
+  u : [alphabet[i],o[i][2],sconcat("(",alphabet_strings[i],") ",o[i][1])],
+  u : append(u,rest(o[i],2)),
+  oo : endcons(u,oo)
+ ),
+ return(oo)
+);
+
+mcq_trim(opts) := map(lambda([u],firstn(u,2)),opts)$
+
+mcq_to_01(x) := block([],
+ if ((integerp(x) and not(x = 0)) or
+     x = "T" or x = "t" or
+     x = "True" or x = "true" or
+     x = "Y" or x = "y" or
+     x = "Yes" or x = "yes" or
+     x = True or x = true or
+     x = Yes or x = yes) then (
+  return(1)
+ ) else (
+  return(0)
+ )
+);
+
+/* This is discussed in the general comments above. */
+mcq_unlabel(key,opts) := opts[cint(sconcat("",key)) - 64]$
+
+/* This should be removed when we have refactored questions that use it */
+unlabel : mcq_unlabel$
+
+mr_feedback(ans,opts,[with_display_]) := block(
+ [with_display : false,
+  keys : [], num_opts : 0,
+  first_mismatch : false,
+  ticked   : [],  ticked_keys   : [], num_ticked   : 0,
+  unticked : [],  unticked_keys : [], num_unticked : 0,
+  missing  : [],  missing_keys  : [], num_missing  : 0,
+  extra    : [],  extra_keys    : [], num_extra    : 0,
+  is_correct : false, binary_score : 0, count_score : 0,
+  count_note : "", crude_count_feedback : "", count_feedback : "",
+  table_note : "", table_feedback : "", full_table_feedback : "",
+  i,opt,opt_string,M
+ ],
+
+ opt_ok(u) :=
+  ev(listp(u) and length(u) >= 2 and (u[2] = true or u[2] = false),pred),
+  
+ if (not(listp(ans) and listp(opts) and every(opt_ok,opts))) then (
+  return(false)
+ ),
+
+ keys : map(first,opts),
+
+ if (length(setdifference(setify(ans),setify(keys))) > 0) then (
+  return(false)
+ ),
+ 
+ simp : true,
+ with_display : ev(length(with_display_) > 0 and with_display_[1] = true,pred),
+ 
+ num_opts : length(opts),
+ for i from 1 thru num_opts do (
+  opt : opts[i],
+  if member(opt[1],ans) then (
+   ticked : endcons(opt,ticked),
+   if (not(opt[2])) then (
+    extra : endcons(opt,extra),
+    if (first_mismatch = false) then first_mismatch : opt
+   )
+  ) else (
+   unticked : endcons(opt,unticked),
+   if (opt[2]) then (
+    missing : endcons(opt,missing),
+    if (first_mismatch = false) then first_mismatch : opt
+   )
+  )
+ ),
+
+ ticked_keys   : map(first,ticked),
+ unticked_keys : map(first,unticked),
+ extra_keys    : map(first,extra),
+ missing_keys  : map(first,missing),
+ num_ticked    : length(ticked),
+ num_unticked  : length(unticked),
+ num_extra     : length(extra),
+ num_missing   : length(missing),
+
+ is_correct : ev(num_extra = 0 and num_missing = 0,pred),
+ binary_score : if is_correct then 1 else 0,
+
+ count_score : num_opts - num_extra - num_missing,
+
+ if (num_extra = 0) then (
+  if (num_missing = 0) then (
+   count_note : "correct",
+   crude_count_feedback : "Your answer is correct",
+   count_feedback : "Your answer is correct"
+  ) else (
+   if (num_ticked = 0) then (
+    crude_count_feedback :
+     "You have not ticked any answers, but in fact there are one or more answers that are correct."
+   ) else (
+    crude_count_feedback : 
+     "All the answers that you ticked are correct, but there are one or more additional answers that are also correct."
+   ),
+   if (num_missing = 1) then (
+    count_note : "one missing",
+    if (num_ticked = 0) then (
+     count_feedback :
+      "You have not ticked any answers, but in fact one of the answers is correct."
+    ) else (
+     count_feedback : 
+      "All the answers that you ticked are correct, but there is one more answer that is also correct."
+    )
+   ) elseif (num_missing = 2) then (
+    count_note : "two missing",
+    if (num_ticked = 0) then (
+     count_feedback :
+      "You have not ticked any answers, but in fact two of the answers are correct."
+    ) else (
+     count_feedback : 
+      "All the answers that you ticked are correct, but there are two more answers that are also correct."
+    )
+   ) else (
+    count_note : "several missing",
+    if (num_ticked = 0) then (
+     count_feedback :
+      "You have not ticked any answers, but in fact several of the answers are correct."
+    ) else (
+     count_feedback : 
+      "All the answers that you ticked are correct, but there are several more answers that are also correct."
+    )
+   )
+  )
+ ) else (
+  crude_count_feedback :
+   "One or more of the answers that you ticked is not in fact correct",
+  if (num_extra = 1) then (
+   count_note : "one extra",
+   count_feedback :
+    "One of the answers that you ticked is not in fact correct"
+  ) elseif (num_extra = 2) then (
+   count_note : "two extra",
+   count_feedback :
+    "Two of the answers that you ticked are not in fact correct"
+  ) else (
+   count_note : "several extra",
+   count_feedback :
+    "Several of the answers that you ticked are not in fact correct"
+  )
+ ),
+
+ if (not(first_mismatch = false)) then (
+  table_note : "incorrect",
+  if (with_display) then (
+   opt_string : first_mismatch[3],
+   if (length(first_mismatch) >= 4) then table_feedback : first_mismatch[4],
+   if (length(first_mismatch) >= 5) then table_note : first_mismatch[5]
+  ) else (
+   opt_string : first_mismatch[1],
+   if (not(stringp(opt_string))) then opt_string : tex0(opt_string),
+   if (length(first_mismatch) >= 3) then table_feedback : first_mismatch[3],
+   if (length(first_mismatch) >= 4) then table_note : first_mismatch[4]
+  ),
+
+  if (slength(opt_string) > 10) then (
+   opt_string : sconcat(
+    "<br/><center>",opt_string,"</center><br/>"
+   )
+  ),
+
+  if (not(table_feedback = "")) then (
+   if (first_mismatch[2]) then (
+    full_table_feedback : sconcat(
+     "You said that the following answer is incorrect: ",
+     opt_string,
+     "<br/>",
+     "However, it is in fact correct. ",
+     "(There may or may not be other issues with your answer as well.)",
+     "<br/><b>",
+     "Explanation: ",
+     "</b><br/>",
+     table_feedback
+    )
+   ) else (
+    full_table_feedback : sconcat(
+     "You said that the following answer is correct: ",
+     opt_string,
+     "<br/>",
+     "However, it is in fact incorrect. ",
+     "(There may or may not be other issues with your answer as well.)",
+     "<br/><b>",
+     "Explanation: ",
+     "</b><br/>",
+     table_feedback
+    )
+   )
+  )
+ ),
+
+ M : ["stack_map",
+      ["with_display",with_display],
+      ["opts",opts]        ,["keys",keys]                  ,["num_opts",num_opts],
+      ["ticked",ticked]    ,["ticked_keys",ticked_keys]    ,["num_ticked",num_ticked],
+      ["unticked",unticked],["unticked_keys",unticked_keys],["num_unticked",num_unticked],
+      ["extra",extra]      ,["extra_keys",extra_keys]      ,["num_extra",num_extra],
+      ["missing",missing]  ,["missing_keys",missing_keys]  ,["num_missing",num_missing],
+      ["is_correct",is_correct],
+      ["binary_score",binary_score],
+      ["count_score",count_score],
+      ["first_mismatch",first_mismatch],
+      ["count_note",count_note],
+      ["crude_count_feedback",crude_count_feedback],
+      ["count_feedback",count_feedback],
+      ["table_note",table_note],
+      ["table_feedback",table_feedback],
+      ["full_table_feedback",full_table_feedback]
+     ],
+
+ return([binary_score,table_note,table_feedback,M])
+)$
+
