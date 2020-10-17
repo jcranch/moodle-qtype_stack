@@ -1,0 +1,488 @@
+find_new_var(preferred,avoid) := block(
+ [vars,var,v,i],
+ avoidstrings : all_names(avoid),
+ vars : append(preferred,makelist(ascii(i),i,97,122),makelist(ascii(i),i,65,90)),
+ var : "",
+ for i from 1 thru length(vars) do (
+  v : vars[i],
+  if (parse_string(v) = eval_string(v) and 
+      not(member(v,avoidstrings))) then (
+   var : v, return(v)
+  )
+ ),
+ return(var)
+)$
+
+diff_spec(var_list) := block([n,m,var,ord,r,V,O,T],
+ if (not(listp(var_list))) then (return(false)),
+ n : length(var_list),
+ if (n = 0) then (
+  return(["stack_map",["variables",{}],["total_order",0],["order",["stack_map"]]])
+ ) elseif (n = 1) then (
+  var : var_list[1],
+  if (symbolp(var)) then (
+   return(["stack_map",["variables",{var}],["total_order",1],["order",["stack_map",[var,1]]]])
+  ) else (
+   return(false)
+  )
+ ) else (
+  var : var_list[1],
+  ord : var_list[2],
+  r : diff_spec(rest(var_list,2)),
+  if (symbolp(var) and integerp(ord) and ord > 0 and not (r = false)) then (
+   V : union(stackmap_get(r,"variables"),{var}),
+   O : stackmap_get(r,"order"),
+   T : stackmap_get(r,"total_order") + ord,
+   m : stackmap_get(O,var),
+   if (m = und) then (m : 0),
+   O : stackmap_set(O,var,m + ord),
+   return(["stack_map",["variables",V],["total_order",T],["order",O]])
+  ) else (
+   return(false)
+  )
+ )
+)$
+
+diff_problem_split(Q) := block([q,d,ta,f,n,vars],
+ q : ["stack_map"],
+ if (safe_op(Q) = "=") then (
+  d : lhs(Q),
+  ta : rhs(Q)
+ ) else (
+  d : Q,
+  ta : false
+ ),
+
+ if (not(safe_op(d) = "diff") and length(args(d)) > 1) then (
+  return(false)
+ ),
+
+ f : args(d)[1],
+
+ if (safe_op(f) = "=") then (
+  n : lhs(f), f : rhs(f)
+ ) else (
+  n : false
+ ),
+
+ q : stackmap_set(q,"LHS",apply(noundiff,cons(f,rest(args(d))))),
+
+ if (ta = false) then (
+  ta : ev(apply(diff,cons(f,rest(args(d)))),simp)
+ ),
+
+ q : stackmap_set(q,"right_answer",ta),
+ q : stackmap_set(q,"function",f),
+ q : stackmap_set(q,"function_name",n),
+
+ var_list : rest(args(d)),
+ r : diff_spec(var_list),
+ if (r = false) then (return(false)),
+ q : stackmap_set(q,"total_order",stackmap_get(r,"total_order")),
+ q : stackmap_set(q,"var_list",var_list),
+
+ vars : stackmap_get(r,"variables"),
+ q : stackmap_set(q,"variables",vars),
+ q : stackmap_set(q,"total_order",stackmap_get(r,"total_order")),
+
+ if (length(vars) = 1) then (
+  q : stackmap_set(q,"mixed",false),
+  q : stackmap_set(q,"variable",first(vars))
+ ) else (
+  q : stackmap_set(q,"mixed",true)
+ ),
+ 
+ return(q)
+)$
+
+diff_problem_test(sa,Q) := block(
+ [q,rightans,f,g,h,fn,fnmsg,var,fb,an,msg,sc,cv,newvar,exptvar,base,expt,
+  wrongans,wrongans0,wrongans1],
+ q : diff_problem_split(Q),
+ rightans : stackmap_get(q,"right_answer"),
+ f : stackmap_get(q,"function"),
+ var : stackmap_get(q,"variable"),
+ fb : "",
+ an : "",
+ if (ATAlgEquiv(sa,rightans)[2]) then (
+  sc : 1
+ ) else (
+  sc : 0,
+  cv : check_vars(sa,Q),
+  extra : stackmap_get(cv,"extra"),
+  if (length(extra) > 0) then (
+   an : "extra vars",
+   fb : sconcat(
+         feedback,
+	 "Your answer involves the following variable(s) that do not occur in the question or the right answer:",
+         " <font color=\"red\"><tt>",
+	 simplode(extra,","),
+         "</tt></font>",newline,"<br/>",newline),
+   if (length(intersect(setify(extra),{"t","u","v","w","x","y","z"})) > 0) then (
+    fb : sconcat(fb,
+    "The problem may have arisen because you did not backsubstitute an ",
+    "auxilary variable that you introduced when applying the chain rule ",
+    "or another differentiation rule.  For example, when differentiating ",
+    "\\(y=\\sin(x^4)\\) we might use \\(u=x^4\\) so \\(y=\\sin(u)\\) and ",
+    "\\(dy/du=\\cos(u)\\) and \\(du/dx=4x^3\\) so ",
+    "\\(\\displaystyle\\frac{dy}{dx}=\\frac{du}{dx}\\frac{dy}{du}=4x^3\\cos(u)=4x^3\\cos(x^4)\\). ",
+    "If we forgot the very last step then we would get \\(dy/dx=4x^3\\cos(u)\\), ",
+    "which is not acceptable as a final answer because it involves \\(u\\) ",
+    "as an unexplained variable. ",
+    newline,"<br/>",newline
+    )
+   )
+  ),
+  if (stackmap_get(q,"total_order") = 1) then (
+   var : stackmap_get(q,"variable"),
+   fn : stackmap_get(q,"function_name"),
+   if (fn = false) then (
+    fn : parse_string(find_new_var(["y","z","u","v","w","t"],[a,Q])),
+    fnmsg : sconcat(
+     "Put \\[ ",tex1(fn)," = ",tex1(f),", \\]",newline,
+     "so you were asked to find",newline,
+     "\\[ ",tex1(noundiff(fn,var)),". \\]",newline
+    )
+   ) else (
+    fnmsg : ""
+   ),
+   /* Look for errors of the form (g o h)' = g' o h */
+   if (member(safe_op(f),basic_functions) and
+       length(args(f)) = 1) then (
+    g : op(f)(uu),
+    h : args(f)[1],
+    wrongans : subst(uu = h,diff(g,uu)),
+    if (ATAlgEquiv(sa,wrongans)[2]) then (
+     an : "naive chain rule",
+     newvar : parse_string(find_new_var(["u","v","w","t","x","y","z"],[Q,sa,g])),
+     g : subst(uu = newvar,g),
+     msg : sconcat(
+      fnmsg,
+      "Possibly you did something like this. ",
+      "Put ",newline,
+      "\\[ ",tex1(newvar)," = ",tex1(h),", \\]",newline,
+      "so",newline,
+      "\\[ ",tex1(fn)," = ",tex1(f)," = ",tex1(g),". \\]",newline,
+      "Then",newline,
+      "\\[ ",tex1(noundiff(fn,newvar))," = ",
+             tex1(diff(g,newvar))," = ",
+	     tex1(wrongans),". \\]",newline,
+      "But this is \\(",tex1(noundiff(fn,newvar)),"\\), not \\(",
+      tex1(noundiff(fn,var)),"\\)."
+     ),
+     fb : sconcat(fb,msg)
+    )
+   ) elseif (safe_op(f) = "^") then (
+    /* Look for errors of the form (g ^ n) ' = n * g^(n-1) where
+       g' <> 1 or n' <> 0.
+    */
+    base : args(f)[1],
+    expt : args(f)[2],
+    if (not(freeof(var,expt))) then (
+     wrongans0 : expt * base ^ (expt - 1),
+     wrongans1 : wrongans0 * diff(base,var),
+     if (ATAlgEquiv(sa,wrongans0)[2] or ATAlgEquiv(sa,wrongans1)[2]) then (
+      an : "dependent exponent",
+      newvar : parse_string(find_new_var(["u","v","w","t","x","y","z"],[Q,sa,fn])),
+      exptvar : parse_string(find_new_var(["n","m","i","j","k"],[Q,sa,fn,newvar])),
+      if (base = var) then (
+       msg : sconcat(
+        fnmsg,
+        "Possibly you did something like this. Put ",newline,
+	"\\[ ",tex1(exptvar)," = ",tex1(expt),", \\]",newline,
+	"so",newline,
+	"\\[ ",tex1(fn)," = ",tex1(f)," = ",tex1(var^exptvar)," \\]",newline,
+	"so",newline,
+	"\\[ ",tex1(noundiff(fn,var))," = ",
+	       tex1(exptvar * var ^ (exptvar - 1))," = ",
+	       tex1(wrongans1),". \\]",newline,
+	"Unfortunately, this is not correct, because the exponent \\(",
+        tex1(expt),"\\) depends on \\(",tex1(var),"\\), so the usual rule ",newline,
+	"\\[ ",tex1(noundiff(var^exptvar,var))," = ",
+	       tex1(exptvar * var^(exptvar - 1))," \\]",newline,
+	"does not apply.  A different method is needed. "
+       ),
+       fb : sconcat(fb,msg)
+      ) else (
+       msg : sconcat(
+        fnmsg,
+        "Possibly you did something like this. Put ",newline,
+	"\\[ ",tex1(newvar)," = ",tex1(base),", \\]",newline,
+	"\\[ ",tex1(exptvar)," = ",tex1(expt),", \\]",newline,
+	"so",newline,
+	"\\[ ",tex1(fn)," = ",tex1(f)," = ",tex1(newvar^exptvar)," \\]",newline,
+	"so",newline,
+	"\\[ ",tex1(noundiff(fn,var))," = ",
+	       tex1(exptvar * var ^ (exptvar - 1) * noundiff(newvar,var))," = ",
+	       tex1(wrongans1),". \\]",newline,
+	"Unfortunately, this is not correct, because the exponent \\(",
+        tex1(expt),"\\) depends on \\(",tex1(var),"\\).  This means that there ",
+	"is a hidden dependence between \\(",tex1(exptvar),"\\) and \\(",
+	tex1(newvar),"\\), so the usual rule ",newline,
+	"\\[ ",tex1(noundiff(newvar^exptvar,newvar))," = ",
+	       tex1(exptvar * newvar^(exptvar - 1))," \\]",newline,
+	"does not apply.  A different method is needed. "
+       ),
+       fb : sconcat(fb,msg)
+      )
+     )
+    ) elseif(not(diff(base,var) = 1)) then (
+     wrongans : expt * base ^ (expt - 1),
+     if (ATAlgEquiv(sa,wrongans)[2]) then (
+      an : "naive power rule",
+      newvar : parse_string(find_new_var(["u","v","w","t","x","y","z"],[Q,sa,fn])),
+      msg : sconcat(
+       fnmsg,
+       "Possibly you did something like this. Put",newline,
+       "\\[ ",tex1(newvar)," = ",tex1(base),", \\]",newline,
+       "so",newline,
+       "\\[ ",tex1(fn)," = ",tex1(f)," = ",tex1(newvar ^ expt),". \\]",newline,
+       "Then ",newline,
+       "\\[ ",tex1(noundiff(fn,newvar))," = ",
+              tex1(expt * newvar ^ (expt - 1))," = ",
+	      tex1(wrongans)," \\]",newline,
+       "which is your answer.  But this is ",
+       "\\(",tex1(noundiff(fn,newvar)),"\\), not \\(",tex1(noundiff(fn,var)),"\\)."
+      ),
+      fb : sconcat(fb,msg)
+     )
+    )
+   ) elseif (safe_op(f) = "*" and length(args(f)) = 2) then (
+     /* Look for errors of the form (f * g)' = f' * g' */ 
+    g : args(f)[1],
+    h : args(f)[2],
+    if (not(freeof(var,g)) and not(freeof(var,h))) then (
+     wrongans : diff(g,var) * diff(h,var),
+     if (ATAlgEquiv(sa,wrongans)[2]) then (
+      an : "naive product rule",
+      msg : sconcat(
+       fnmsg,
+       "You seem to have written \\(",tex1(f),"\\) as the product of ",
+       "\\(",tex1(g),"\\) and \\(",tex1(h),"\\), differentiated these ",
+       "two factors separately, and multiplied these two derivatives ",
+       "together.  That is not the correct version of the product rule."
+      ),
+      fb : sconcat(fb,msg)
+     )
+    )
+   )
+  )
+ ),
+ return([sc,fb,an])
+)$
+
+/* This function is intended for questions in which students are
+ * asked to find a local maximum, a local minimum or a stationary
+ * point of a function fun depending on a single variable var.
+ * The argument val is the student's answer, and there is an
+ * optional argument opts which can be a stackmap specifying
+ * various options.  The return value is a list of the form 
+ * [score,answernote,feedback].
+ *
+ * To be safe, fun should be twice continuously differentiable.
+ * Depending on the details, things may or may not work in
+ * greater generality.
+ *
+ * The req_type option can be "max" (if students are asked to
+ * find a local maximum), or "min" (if they are asked to find
+ * a local maximum), or "any" (if they are asked to find an
+ * arbitrary stationary point).  Specific feedback will be
+ * given if val is a stationary point of the wrong type.
+ * The code assumes that there are no inflection points.
+ *
+ * If fun has strictly positive derivative at val, then the
+ * feedback will explain that this is true, and that it prevents
+ * val from being a stationary point.  Similar feedback is
+ * given if the derivative is strictly negative.  Under certain
+ * conditions controlled by the options, the feedback may also
+ * contain an svg graph illustrating this explanation.
+ */
+ 
+ check_stationary_point(fun,var,val,[opts_]) := block(
+ [oo,keys,opts,k,v,sc,an,fb,
+  x_min,x_max,x_scale,x_padding,
+  y_min,y_max,y_scale,y_padding,
+  stroke_width, plot_range,bar_length,svg_width,num_points,req_type,
+  plot_min,plot_max,x_min_svg,x_range_svg,y_min_svg,y_range_svg,
+  dfun,ddfun,funval,dfunval,ddfunval,val0,funval0,dfunval0,ddfunval0
+ ],
+ simp : true,
+ oo : ["stack_map",
+       ["x_min",0],
+       ["x_max",1],
+       ["x_scale",1],
+       ["x_padding",0.1],
+       ["y_min",0],
+       ["y_max",1],
+       ["y_scale",1],
+       ["y_padding",0.1],
+       ["stroke_width",0.01],
+       ["plot_range",[0,1]],
+       ["bar_length",1],
+       ["svg_width",300],
+       ["num_points",10],
+       ["req_type","any"]
+      ],
+ keys : map(lambda([u],u[1]),rest(oo)),
+ if (length(opts_) > 0) then (
+  opts : opts_[1],
+  for k in keys do (
+   v : stackmap_get(opts,k),
+   if (not(v = und)) then (
+    oo : stackmap_set(oo,k,v)
+   )
+  )
+ ),
+ x_min : stackmap_get(oo,"x_min"),
+ x_max : stackmap_get(oo,"x_max"),
+ x_scale : stackmap_get(oo,"x_scale"),
+ x_padding : stackmap_get(oo,"x_padding"),
+ y_min : stackmap_get(oo,"y_min"),
+ y_max : stackmap_get(oo,"y_max"),
+ y_scale : stackmap_get(oo,"y_scale"),
+ y_padding : stackmap_get(oo,"y_padding"),
+ stroke_width : stackmap_get(oo,"stroke_width"),
+ plot_range : stackmap_get(oo,"plot_range"),
+ bar_length : stackmap_get(oo,"bar_length"),
+ svg_width : stackmap_get(oo,"svg_width"),
+ num_points : stackmap_get(oo,"num_points"),
+ req_type : stackmap_get(oo,"req_type"),
+ plot_min : first(plot_range),
+ plot_max : last(plot_range),
+ x_min_svg : (x_min - x_padding) * x_scale,
+ x_range_svg : (x_max - x_min + 2 * x_padding) * x_scale,
+ y_min_svg : (y_min - y_padding) * y_scale,
+ y_range_svg : (y_max - y_min + 2 * y_padding) * y_scale,
+
+ sc : 0,
+ an : "",
+ fb : "",
+ 
+ if (not(continuousp(fun,var,val))) then (
+  an : "discontinuous",
+  fb : sconcat(
+   "The function ",tex0(fun)," is not even well-defined at ",
+    tex0(var=val),", so that point cannot be a local maximum."
+  ),
+  return([sc,an,fb])
+ ),
+  
+ dfun : diff(fun,var),
+ ddfun : diff(dfun,var),
+ funval : subst(var = val,fun),
+ dfunval : subst(var = val,dfun),
+ ddfunval : subst(var = val,ddfun),
+ val0 : float(val),
+ funval0 : float(funval),
+ dfunval0 : float(dfunval),
+ ddfunval0 : float(ddfunval),
+  
+ if (ATAlgEquiv(dfunval,0)[2]) then (
+  if (req_type = "max" and ddfunval0 > 0) then (
+   an : "stationary but not max",
+   fb : sconcat(
+    "It is true that ",tex0(fun)," has a stationary point at ",
+    tex0(var = val),", but it is not a local maximum."
+   ),
+   return([sc,an,fb])
+  ) elseif (req_type = "min" and ddfunval0 < 0) then (
+   an : "stationary but not min",
+   fb : sconcat(
+    "It is true that ",tex0(fun)," has a stationary point at ",
+    tex0(var = val),", but it is not a local minimum."
+   ),
+   return([sc,an,fb])
+  ),
+  return([1,"correct",""])
+ ),
+
+ if (is(dfunval0 > 0)) then (
+  an : "increasing",
+  if (req_type = "max") then (
+   fb : sconcat(fb,
+     "At ",tex0(var=val),", the graph of ",tex0(fun)," ",
+     "is sloping upwards, so we can make the value ",
+     "bigger by increasing ",tex0(var)," a little. ",
+     "This means that we do not have a local maximum."
+   )
+  ) elseif (req_type = "min") then (
+   fb : sconcat(fb,
+     "At ",tex0(var=val),", the graph of ",tex0(fun)," ",
+     "is sloping upwards, so we can make the value ",
+     "smaller by decreasing ",tex0(var)," a little. ",
+     "This means that we do not have a local minimum."
+     )
+  ) else (
+   fb : sconcat(fb,
+     "At ",tex0(var=val),", the graph of ",tex0(fun)," ",
+     "is sloping upwards, so we do not have a stationary point."
+     )
+  )
+ ) else (
+  an : "decreasing",
+  if (req_type = "max") then (
+   fb : sconcat(fb,
+     "At ",tex0(var=val),", the graph of ",tex0(fun)," ",
+     "is sloping downwards, so we can make the value ",
+     "bigger by decreasing ",tex0(var)," a little. ",
+     "This means that we do not have a local maximum."
+     )
+  ) elseif (req_type = "min") then (
+   fb : sconcat(fb,
+     "At ",tex0(var=val),", the graph of ",tex0(fun)," ",
+     "is sloping downwards, so we can make the value ",
+     "smaller by increasing ",tex0(var)," a little. ",
+     "This means that we do not have a local minimum."
+     )
+  ) else (
+   fb : sconcat(fb,
+     "At ",tex0(var=val),", the graph of ",tex0(fun)," ",
+     "is sloping dowwards, so we do not have a stationary point."
+     )
+  )
+ ),
+
+ if (is(plot_min <= val0) and (val0 <= plot_max)) then (
+  an : sconcat(an,", in bounds"),
+  a0l : max(x_min,val0 - bar_length),
+  a0r : min(x_max,val0 + bar_length),
+  if (dfunval0 > 0) then (
+   a0l : max(a0l, val0 + (y_min - funval0)/dfunval0),
+   a0r : min(a0r, val0 + (y_max - funval0)/dfunval0)
+  ) else (
+   a0l : max(a0l, val0 + (y_max - funval0)/dfunval0),
+   a0r : min(a0r, val0 + (y_min - funval0)/dfunval0)
+  ),
+  b0l : funval0 + (a0l - val0) * dfunval0,
+  b0r : funval0 + (a0r - val0) * dfunval0,
+  p(x0,x1) := sconcat(
+   "<path d=\"",
+   svg_path(t * x_scale,subst(var = t,-fun * y_scale),x0,x1,num_points),
+   "\" stroke=\"red\" fill=\"none\" ",
+   "stroke-width=\"", stroke_width, "\"/>"
+  ),
+  svg : sconcat(
+   "<div>",newline,
+   " <svg width=\"",svg_width,"\" ",
+   "viewBox=\"",x_min_svg," ",y_min_svg," ",x_range_svg," ",y_range_svg,"\">",newline,
+   svg_arrow_defs,
+   svg_axes(x_min * x_scale, y_min * y_scale, x_max * x_scale, y_max * y_scale),
+   apply(sconcat,makelist(p(plot_range[2*j-1],plot_range[2*j]),j,1,length(plot_range)/2)),
+   svg_line(val0 * x_scale,0,val0 * x_scale,-funval0 * y_scale,"blue",stroke_width),
+   svg_line(a0l * x_scale,-b0l * y_scale,a0r * x_scale,-b0r * y_scale,"green",stroke_width),
+   " </svg>",
+   "</div>"
+  ),
+
+  fb : sconcat(
+   "The picture below shows the graph of ",tex0(fun),". ",
+   "The vertical line is at ",tex0(var=val),", as in your answer. ",
+   svg,
+   fb
+  )
+ ) else (
+  an : sconcat(an,", out of bounds")
+ ),
+
+ return([sc,an,fb])
+)$
