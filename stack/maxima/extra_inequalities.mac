@@ -1,0 +1,128 @@
+/* Here e is expected to be an inequality, i.e. a Maxima expression
+ * like (a < b) or (a > b) or (a <= b) or (a >= b) for some a,b.
+ * The function below returns a table containing various information
+ * about the inequality.  In particular, the "is_simple" field will
+ * be true iff one side of the inequality is a symbol and the other
+ * side is a real constant.
+ */
+parse_inequality(e) := block([E,o,v,vars],
+  o: safe_op(e),
+  E: ["stack_map",["op",o],["is_valid",false],["is_strict",false],["is_simple",false],["var",""]],
+  vars: listofvars(e),
+  E: stackmap_set(E,"vars",vars),
+  if (length(vars) = 1) then (v: vars[1], E: stackmap_set(E,"var",v)),
+  if (o = "<" or o = ">" or o = "<=" or o = ">=") then (
+   E: stackmap_set(E,"is_valid",true),
+   E: stackmap_set(E,"is_strict",ev(o = "<" or o = ">",pred)),
+   E: stackmap_set(E,"lhs",lhs(e)),
+   E: stackmap_set(E,"rhs",rhs(e)),
+   if ((lhs(e) = v and real_numberp(rhs(e))) or (rhs(e) = v and real_numberp(lhs(e)))) then (
+     E: stackmap_set(E,"is_simple",true)
+   )
+  ) else (
+  E: stackmap_set(E,"is_valid",false)
+ ),
+ return (E)
+)$
+
+/* This returns true if the argument e is a logical combination of
+   equalities or inequalities, where each (in)equality has the
+   symbol x on one side and a real constant on the other.
+ */
+inequality_systemp(e,x) := block([o,a,b,f],
+  if (length(setdifference(setify(listofvars(e)),{x,any,none}) ) > 0) then (return(false)),
+  o: safe_op(e),
+  if (o = "<" or o = ">" or o = "<=" or o=">=" or o="=" or o="equal" or o="#" or o="notequal") then (
+   a: lhs(e),
+   b: rhs(e),
+   return(ev((a = x and real_numberp(b)) or (b = x and realnumberp(a)),simp))
+ ) elseif(o = "and" or o = "nounand" or o = "or" or o = "nounor" or o = "not" or o = "nounnot") then (
+    for f in args(e) do (if (not(inequality_systemp(f,x))) then (return(false))),
+    return(true)
+) elseif (e = true or e = false or e = all or e = none) then (
+    return(true)
+)  else (
+  return(false)
+ )
+)$
+
+/* Reverse the direction of an inequality
+ */
+reverse_inequality_symbol(o) := block([],
+   if     (o = "<" ) then (return(">"))
+   elseif (o = ">" ) then (return("<"))
+   elseif (o = "<=") then (return(">="))
+   elseif (o = ">=") then (return("<="))
+   else                   (return(false))
+)$
+
+reverse_inequality(e) := block([o],
+ o: reverse_inequality_symbol(safe_op(e)),
+ if (o = false) then (
+  return(false)
+ ) else (
+  return(apply(o,[lhs(e),rhs(e)]))
+ )
+)$
+
+/* Given an inequality (a*x+b) R (c*x+d), return an equivalent inequality
+ * with x on its own on one side, and a real constant on the other.
+ */
+simplify_linear_inequality(e) := block([x,o,c],
+ vars: listofvars(e),
+ if (length(vars) # 1) then (return(false)),
+ x: vars[1],
+ o: safe_op(e),
+ u: ev(lhs(e) - rhs(e),simp),
+ c: coeff(u,x,1),
+ if (not(real_numberp(c)) or c = 0) then (return(false)),
+ if (c < 0) then (o: reverse_inequality_symbol(o)),
+ u: ev(expand(-coeff(u,x,0)/c),simp),
+ return(apply(o,[x,u]))
+)$
+
+/* Given an inequality (a*x^2+b*x+c) R (d*x^2+e*x+f), return an equivalent
+ * system of simple inequalities.
+ */
+simplify_quadratic_inequality(e) := block([simp,x,x_0,x_1,o,u,a,b,c,D],
+ simp: true,
+ vars: listofvars(e),
+ if (length(vars) # 1) then (return(false)),
+ x: vars[1],
+ o: safe_op(e),
+ u: ev(expand(lhs(e) - rhs(e)),simp),
+ a: coeff(u,x,2),
+ if (not(real_numberp(a)) or a = 0) then (return(false)),
+ if (a < 0 ) then (o: reverse_inequality_symbol(o)),
+ u: ev(expand(u/a),simp),
+ b: coeff(u,x,1),
+ c: coeff(u,x,0),
+ if (not(real_numberp(b) and real_numberp(c))) then (return(false)),
+ D: ev(b^2 - 4*c,simp),
+ if (is(D < 0)) then (
+  if (o = "<" or o = "<=") then (return(none)) else (return(all))
+ ) elseif(is(D = 0)) then (
+    x_0: ev(-b/2,simp),
+    if (o = "<") then (
+     return(none)
+    ) elseif(o = "<=") then (
+     return(x = x_0)
+    ) elseif(o = ">") then (
+     return(x < x_0 or x > x_0)
+    ) elseif (o = ">=") then (
+      return(all)
+    )
+ ) else (
+    x_0: ev((-b-sqrt(D))/2,simp),
+    x_1: ev((-b+sqrt(D))/2,simp),
+    if (o = "<") then (
+     return(x_0 < x and x < x_1)
+    ) elseif(o = "<=") then (
+     return(x_0 <= x and x <= x_1)
+    ) elseif(o = ">") then (
+     return(x < x_0 or x > x_1)
+    ) elseif(o = ">=") then (
+     return(x <= x_0 or x <= x_1)
+    )
+  )
+)$
