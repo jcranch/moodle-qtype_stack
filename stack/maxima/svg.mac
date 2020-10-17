@@ -1,0 +1,43 @@
+svg_arrow_defs : "
+<defs>
+ <marker id=\"arrowhead\" markerWidth=\"20\" markerHeight=\"14\" refX=\"20\" refY=\"7\" orient=\"auto\">
+  <polygon points=\"0 0, 20 7, 0 14\" />
+ </marker>
+</defs>
+"$
+
+svg_axes(x_min,y_min,x_max,y_max) := block(
+ [],
+ return(sconcat(
+"<line x1=\"",x_min,"\" y1=\"0\" x2=\"",x_max,
+  "\" y2=\"0\" stroke=\"black\" stroke-width=\"0.005\" marker-end=\"url(#arrowhead)\"/>",
+  newline,
+"<line x1=\"0\" y1=\"",-y_min,"\" x2=\"0\" y2=\"",-y_max,
+  "\" stroke=\"black\" stroke-width=\"0.005\" marker-end=\"url(#arrowhead)\"/>"
+ ))
+)$
+
+svg_line(x1,y1,x2,y2,col,wid) :=
+ sconcat(
+  "<line x1=\"",x1,"\" y1=\"",y1,"\" x2=\"",x2,"\" y2=\"",y2,"\" ",
+  "stroke=\"",col,"\" stroke-width=\"",wid,"\"/>"
+ )$
+ 
+svg_path(xt,yt,t_min,t_max,n) := block(
+ [s,ts,xs,ys,xsd,ysd,u,v,d,i,p,q],
+ ts: (1 - s) * t_min + s * t_max,
+ xs: subst(t=ts,xt),
+ ys: subst(t=ts,yt),
+ xsd : diff(xs,s),
+ ysd: diff(ys,s),
+ u : makelist(float(subst(s=i/n,[xs,ys])), i,0,n),
+ v: makelist(float(subst(s=i/n,[xsd,ysd])), i,0,n),
+ F(a) := printf(false,"~6f",a),
+ d: sconcat("M ",F(u[1][1]),",",F(u[1][2])),
+ for i from 1 thru n do (
+   p : u[i] + v[i]/(3*n),
+   q: u[i+1] - v[i+1]/(3*n),
+   d: sconcat(d," C ",F(p[1]),",",F(p[2])," ",F(q[1]),",",F(q[2])," ",F(u[i+1][1]),",",F(u[i+1][2]))
+ ),
+ return(d)
+)$
