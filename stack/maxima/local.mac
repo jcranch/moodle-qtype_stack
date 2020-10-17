@@ -1,5 +1,7 @@
 /* Site-specific Maxima code can be put here */
 
+load("inv_trig_tex.lisp");
+
 load("diff.mac");
 load("finmap.mac");
 load("functions.mac");
