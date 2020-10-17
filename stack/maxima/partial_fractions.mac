@@ -1,0 +1,543 @@
+affine_termp(u,var) := block([u0,a,b],
+ u0: ev(expand(u),simp),
+ a: coeff(u0,var,1),
+ b: coeff(u0,var,0),
+ if (real_numberp(a) and
+     real_numberp(b) and
+     not(a = 0) and
+     u0 = a * var + b) then (
+  return(true)
+ ) else (
+  return(false)
+ )
+)$
+
+complex_affine_termp(u,var) := block([u0,a,b],
+ u0: ev(expand(u),simp),
+ a: coeff(u0,var,1),
+ b: coeff(u0,var,0),
+ if (complex_numberp(a) and
+     complex_numberp(b) and
+     not(a = 0) and
+     u0 = a * var + b) then (
+  return(true)
+ ) else (
+  return(false)
+ )
+)$
+
+monic_affine_termp(u,var) := block([u0,b],
+ u0: ev(expand(u),simp),
+ b: coeff(u0,var,0),
+ if (real_numberp(b) and
+     u0 = var + b) then (
+  return(true)
+ ) else (
+  return(false)
+ )
+)$
+
+complex_monic_affine_termp(u,var) := block([u0,b],
+ u0: ev(expand(u),simp),
+ b: coeff(u0,var,0),
+ if (complex_numberp(b) and
+     u0 = var + b) then (
+  return(true)
+ ) else (
+  return(false)
+ )
+)$
+
+quadratic_termp(u,var) := block([u0,a,b,c],
+ u0: ev(expand(u),simp),
+ a: coeff(u0,var,2),
+ b: coeff(u0,var,1),
+ c: coeff(u0,var,0),
+ if (real_numberp(a) and
+     real_numberp(b) and
+     real_numberp(c) and
+     not(a = 0) and
+     u0 = a * var^2 + b * var + c) then (
+  return(true)
+ ) else (
+  return(false)
+ )
+)$
+
+monic_irreducible_quadratic_termp(u,var) := block([u0,b,c],
+ u0: ev(expand(u),simp),
+ b: coeff(u0,var,1),
+ c: coeff(u0,var,0),
+ if (real_numberp(b) and
+     real_numberp(c) and
+     is(ev(4 * c - b^2,simp,numer) > 0) and
+     u0 = var^2 + b * var + c) then (
+  return(true)
+ ) else (
+  return(false)
+ )
+)$
+
+partfrac_termp(u,var) := block([a,v,w,n],
+ [a,w,n]: monomial_split(u),
+ if (not(integerp(n))) then (return(false)),
+ if (w = 1 and n = 0) then (return(true)),
+ if (w = var) then (return(true)),
+ if (monic_affine_termp(w,var) and n < 0) then (return(true)),
+ if (monic_irreducible_quadratic_termp(w,var) and n < 0) then (return(true)),
+ return(false)
+)$
+
+complex_partfrac_termp(u,var) := block([a,v,w,n],
+ [a,w,n]: complex_monomial_split(u),
+ if (not(integerp(n))) then (return(false)),
+ if (w = 1 and n = 0) then (return(true)),
+ if (w = var) then (return(true)),
+ if (complex_affine_termp(w,var) and n < 0) then (return(true)),
+ return(false)
+)$
+
+partfracp(u,var) := every(lambda([v],partfrac_termp(v,var)),sum_terms(u))$
+
+complex_partfracp(u,var) := every(lambda([v],complex_partfrac_termp(v,var)),sum_terms(u))$
+
+monomialp(u,var) := block([a,n],
+ [a,n]: pow_split(u),
+ return (ev((integerp(a) and n = 1) or (a = var and integerp(n)),pred))
+)$
+
+complex_monomialp(u,var) := block([a,n],
+ [a,n]: complex_pow_split(u),
+ return (ev((integerp(a) and n = 1) or (a = var and integerp(n)),pred))
+)$
+
+expanded_polynomialp(u,var) := every(lambda([v],monomialp(v,var)),sum_terms(u))$
+
+complex_expanded_polynomialp(u,var) := every(lambda([v],complex_monomialp(v,var)),sum_terms(u))$
+
+obvious_rational_functionp(u,var) := block([T,t,p,n],
+ T : prod_terms(u),
+ for t in T do (
+  [p,n]: pow_split(t),
+  if (not(expanded_polynomialp(p,var) and integerp(n))) then (
+   return(false)
+  )
+ ),
+ return(true)
+)$
+
+complex_obvious_rational_functionp(u,var) := block([T,t,p,n],
+ T : prod_terms(u),
+ for t in T do (
+  [p,n]: pow_split(t),
+  if (not(complex_expanded_polynomialp(p,var) and integerp(n))) then (
+   return(false)
+  )
+ ),
+ return(true)
+)$
+
+make_complex_partfrac_question(f,var) :=
+ make_complex_partfrac_expression_aux(f,var,true);
+ 
+make_complex_partfrac_answer(f,var) :=
+ make_complex_partfrac_expression_aux(f,var,false);
+ 
+make_complex_partfrac_expression_aux(f,var,questionp) := block(
+ [PE,vars,ff,fp,poles,orders,coeffs,terms,bad_terms,term,bad,pole,
+  term_coeff,term_base,term_exp,pole_ord,old_ppart,new_ppart],
+ PE : ["stack_map",["err",""],["valid",true],["function_name",""]],
+
+ vars: listofvars(f),
+ if (not(vars = [var])) then (
+  PE: stackmap_set(PE,"err","extra variables"),
+  PE: stackmap_set(PE,"vars",vars),
+  PE: stackmap_set(PE,"var",var),
+  PE: stackmap_set(PE,"valid",false),
+  return(PE)
+ ),
+ 
+ PE: stackmap_set(PE,"var",var),
+
+ if (questionp = true) then (
+  ff : complex_factor(f,var),
+  fp : sum_terms(partfrac(ff,var)),
+  fp : map(lambda([v],if polynomialp(v,[x]) then expand(v) else v),fp),
+  fp : apply("+",fp),
+  PE: stackmap_set(PE,"factored_form",ff),
+  PE: stackmap_set(PE,"num",num(ff)),
+  PE: stackmap_set(PE,"denom",denom(ff)),
+  PE: stackmap_set(PE,"question",f),
+  PE: stackmap_set(PE,"right_answer",fp)
+ ) else (
+  fp : f, 
+  PE: stackmap_set(PE,"answer",f)
+ ),
+ 
+ PE: stackmap_set(PE,"initial_form",f),
+ PE: stackmap_set(PE,"partfrac_form",fp),
+ 
+ terms: sum_terms(fp),
+ PE: stackmap_set(PE,"terms",terms),
+ poles: {},
+ orders: ["stack_map"],
+ pparts: ["stack_map"],
+ bad_terms: [],
+ 
+ for term in terms do (
+  bad: false,
+  if (complex_numberp(term)) then (
+   pole: inf, term_exp: 0, term_coeff: term
+  ) else (
+   [term_coeff,term_base,term_exp]: complex_monomial_split(term),
+   if (term_base = 1 and term_exp = 0) then (
+    pole: inf
+   ) elseif (term_base = var and term_exp > 0) then (
+    pole : inf
+   ) elseif (complex_affine_termp(term_base,var) and term_exp < 0) then (
+    term_m : coeff(term_base,var,1),
+    term_base : expand(term_base/term_m),
+    term_coeff : term_coeff * term_m ^ term_exp,
+    pole : rhs(last(solve(term_base = 0,var))),
+    term_exp : -term_exp
+   ) else (
+    bad : true,
+    bad_terms: append(bad_terms,[term])
+   )
+  ),
+  if (not(bad)) then (
+   poles: union(poles,{pole}),
+   pole_ord: stackmap_get(orders,pole),
+   if (pole_ord = und) then (
+    orders: stackmap_set(orders,pole,term_exp)
+   ) else (
+    orders: stackmap_set(orders,pole,max(pole_ord,term_exp))
+   ),
+   old_ppart: stackmap_get(pparts,pole),
+   new_ppart: term_coeff * 'z ^ term_exp,
+   if (old_ppart = und) then (
+    pparts: stackmap_set(pparts,pole,new_ppart)
+   ) else (
+    pparts: stackmap_set(pparts,pole,old_ppart + new_ppart)
+   )
+  )
+ ),
+
+ poles : sort(listify(poles),complex_compare),
+
+ PE: stackmap_set(PE,"poles",poles),
+ PE: stackmap_set(PE,"orders",orders),
+ PE: stackmap_set(PE,"pparts",pparts),
+ PE: stackmap_set(PE,"bad_terms",bad_terms),
+
+ if (length(bad_terms) > 0) then (
+  PE: stackmap_set(PE,"err","bad terms"),
+  PE: stackmap_set(PE,"valid",false)
+ ),
+
+ PE : complex_partfrac_set_genform(PE),
+ 
+ return(PE)
+)$
+
+complex_partfrac_set_genform(PE) := block(
+ [var,poles,orders,pparts,genform_pparts,genform,ppart,term_base,i,term_exp,min_exp,max_exp,pole,PE0],
+ var : stackmap_get(PE,"var"),
+ poles : stackmap_get(PE,"poles"),
+ orders : stackmap_get(PE,"orders"),
+ pparts : stackmap_get(PE,"pparts"),
+ genform_pparts : ["stack_map"],
+ genform : 0,
+ i : 0,
+ for pole in poles do (
+  ppart : 0,
+  min_exp : 1,
+  term_base : 1/(var - pole),
+  if (pole = inf) then (min_exp : 0, term_base : var),
+  max_exp: stackmap_get(orders,pole),
+  for term_exp from min_exp thru max_exp do (
+   i : i + 1,
+   genform : genform + alphabet[i] * term_base ^ term_exp,
+   ppart : ppart + alphabet[i] * z ^ term_exp
+  ),
+  genform_pparts: stackmap_set(genform_pparts,pole,ppart)
+ ),
+
+ PE0 : PE,
+ PE0 : stackmap_set(PE0,"genform",genform),
+ PE0 : stackmap_set(PE0,"genform_pparts",genform_pparts),
+ return(PE0)
+)$
+
+complex_partfrac_set_numerator(PE) := block([f,var,rw,terms,num,den,t,u,k],
+ f : stackmap_get(PE,"question"),
+ var : stackmap_get(PE,"var"),
+ rw: not(complex_obvious_rational_functionp(f,var)),
+ if (rw) then (f : complex_factor(f)),
+ terms: prod_terms(f),
+ num : 1,
+ den : 1,
+ for t in terms do (
+  [u,k] : pow_split(t),
+  if (k >= 0) then (
+   num : num * u ^ k
+  ) else (
+   den : den * u ^ (-k)
+  )
+ ),
+
+ if (rw) then (
+  num : expand(num), den : expand(den)
+ ),
+ 
+ PE0 : PE,
+ PE0 : stackmap_set(PE0,"num",num),
+ PE0 : stackmap_set(PE0,"denom",den),
+ return (PE0)
+)$
+
+complex_partfrac_set_factored_form(PE) := block([f],
+ f : stackmap_get(PE,"question"),
+ return(stackmap_set(PE,"factored_form",complex_factor(f)))
+)$
+
+complex_partfrac_set_solution(PE) := block(
+ [var,fname,f,g,h,ff,poles,orders,pparts,finite_poles,pole_msg,infty_msg,np,p,d,
+  denom,numer,genform,genform_terms,genform_pparts,gentop,u,v,
+  gtcoll,numcoll,eqns,sols,j0,j1,j,c0,c1,fullsol],
+
+ var : stackmap_get(PE,"var"),
+ fname : stackmap_get(PE,"function_name"),
+ if (not(stringp(fname))) then (fname : ""),
+ f : stackmap_get(PE,"question"),
+ fv : stackmap_get(PE,"partfrac_form"),
+ poles  : stackmap_get(PE,"poles"),
+ orders : stackmap_get(PE,"orders"),
+ pparts : stackmap_get(PE,"pparts"),
+ finite_poles : sublist(poles,lambda([p],not(p = inf))),
+ pole_msg : "",
+
+ np : length(finite_poles),
+ nl : "
+",
+ if (np = 0) then (
+  pole_msg : "There are no poles.<br/>"
+ ) elseif(np = 1) then (
+  p : first(finite_poles),
+  d : stackmap_get(orders,p),
+  pole_msg : sconcat("There is a pole of order ",tex0(d)," at ",tex0(var = p),
+                     ", and no other poles.")
+ ) else (
+  pole_msg : sconcat("The poles and their orders are as follows: ",nl,
+                     "<table class=\"edged\" style=\"margin-left:auto;margin-right:auto;\">",nl,
+		     "<tr><td style=\"font-weight:bold\">Pole</td><td style=\"font-weight:bold\">Order</td></tr>",nl),
+  for p in finite_poles do (
+   d : stackmap_get(orders,p),
+   pole_msg : sconcat(pole_msg,"<tr><td>",tex0(p),"</td><td>",tex0(d),"</td></tr>",nl)
+  ),
+  pole_msg : sconcat(pole_msg,"</table>")
+ ),
+
+ infty_msg : "",
+ 
+ if (member(inf,poles)) then (
+  d : stackmap_get(orders,inf),
+  if (d = 0) then (
+   infty_msg : sconcat("The numerator and denominator have the same degree, so the partial ",nl,
+                       "fraction decomposition should include a constant term.")
+  ) elseif (d = 1) then (
+   infty_msg : sconcat("The degree of the numerator is one more than that of the denominator, ",nl,
+                       "so the partial fraction decomposition should include a constant term ",nl,
+		       "and a multiple of ", tex0(var),".")
+  ) else (
+   infty_msg : sconcat("There is a gap of ",tex0(d)," between the degree of the denominator ",nl,
+                       "and the degree of the numerator, so the partial fraction decomposition ",nl,
+		       "should contain multiples of ",tex0(var^'i)," for \\(i\\) from \\(0\\) ",nl,
+		       "to ",tex0(d),".")
+  )
+ ),
+
+ fnum : stackmap_get(PE,"num"),
+ fdenom : stackmap_get(PE,"denom"),
+ genform : stackmap_get(PE,"genform"),
+ genform_terms : sum_terms(genform),
+ genform_pparts : stackmap_get(PE,"genform_pparts"),
+ gentop : [],
+ for u in genform_terms do (
+  v : ev(u * fdenom,simp),
+  if (not(complex_expanded_polynomialp(v,var))) then (
+   v : expand(v)
+  ),
+
+  gentop : append(gentop,[v])
+ ),
+
+ gtcoll : collectterms(apply("+",gentop),var),
+ numcoll : collectterms(fnum,var),
+ eqns : [],
+ for i from 0 thru hipow(gtcoll,var) do (
+  eqns : append(eqns,[tex1(coeff(gtcoll,var,i)),"&=&",tex1(coeff(numcoll,var,i)),"\\\\ "])
+ ),
+ eqns : sconcat("\\[\\begin{array}{rcl} ",apply(sconcat,rest(eqns,-1)),"\\end{array}\\]"),
+ sols : [],
+ for p in poles do (
+  j0 : 1,
+  j1 : stackmap_get(orders,p),
+  if (p = inf) then (j0 : 0),
+  g : stackmap_get(genform_pparts,p),
+  h : stackmap_get(pparts,p),
+  for j from j0 thru j1 do (
+   c0 : coeff(g,z,j),
+   c1 : coeff(h,z,j),
+   sols : append(sols,[tex1(c0),"&=&",tex1(c1),"\\\\ "])
+  )
+ ),
+ sols : sconcat("\\[\\begin{array}{rcl} ",apply(sconcat,rest(sols,-1)),"\\end{array}\\]"),
+
+ if (fname = "") then (
+  fd: ""
+ ) else (
+  fd: sconcat(fname,"=")
+ ),
+
+ ff : stackmap_get(PE,"factored_form"),
+ fullsol : sconcat(
+  "The function \\(",fd,tex1(f),"\\) can be factored as \\[",tex1(ff),
+  ". \\]",nl,pole_msg,nl,nl,infty_msg,nl,nl,"The general form is thus",nl,"\\[",
+  fd,tex1(genform),". \\]",nl,"We set this equal to",nl,"\\[",
+  tex1(ff),", \\]",nl,"Then multiply both sides by ",tex0(fdenom),
+  "and expand everything out to get",nl,"\\[\\begin{array}{rcl}",nl,
+  tex1(fnum)," &=& ",apply("+",gentop)," \\\\",nl,
+  tex1(numcoll)," &=& ",tex1(gtcoll),nl,"\\end{array}\\]",nl,
+  "By comparing coefficients, we see that ",nl,eqns,nl,
+  "These equations can be solved to give ",nl,sols,nl,
+  "The partial fraction decomposition is thus",nl,"\\[ ",fd,
+  tex1(fv),". \\]",nl
+ ),
+
+ return(stackmap_set(PE,"sol",fullsol))
+)$
+
+complex_partfrac_test(ans,Q) := block(
+ [AA,var,vars,extra_vars,T,bad_terms,
+  poles_T,poles_Q,orders_Q,orders_T,pparts_Q,pparts_T,
+  extra_poles,missing_poles,pole,o_T,o_Q],
+ AA : ["stack_map",["score",0],["is_valid",true],["answernote",""],["feedback",""],["Q",Q],["ans",ans]],
+ var: stackmap_get(Q,"var"),
+ vars: listofvars(ans),
+ extra_vars: sublist(vars, lambda([x],not(x = var))),
+ if (length(extra_vars) > 0) then (
+  AA: stackmap_set(AA,"extra_vars",extra_vars),
+  AA: stackmap_set(AA,"answernote","extra vars"),
+  AA: stackmap_set(AA,"feedback",sconcat(
+   "Your answer depends on the following variable(s): ",tex0(extra_vars),
+   ". It should only depend on ",tex0(var),"."
+  )),
+  return(AA)
+ ),
+ T : make_complex_partfrac_answer(ans,var),
+ AA: stackmap_set(AA,"T",T),
+ bad_terms : stackmap_get(T,"bad_terms"),
+ if (length(bad_terms) > 0) then (
+  AA: stackmap_set(AA,"bad_terms",bad_terms),
+  AA: stackmap_set(AA,"answernote","bad terms"),
+  AA: stackmap_set(AA,"feedback",sconcat(
+   "Your answer is not a valid complex partial fraction decomposition. ",
+   "Such a decomposition can only contain terms of the form ",tex0(var^k),
+   " (with \\(k\\in\\mathbb{Z}\\)) or ",tex0((var - alpha)^(-k))," (with \\(k\\gt 0\\)). ",
+   "Your answer contains the following terms, which are not of the ",
+   "allowed form: ",tex0(bad_terms),"."
+  )),
+  return(AA)
+ ),
+ poles_T : stackmap_get(T,"poles"),
+ poles_Q : stackmap_get(Q,"poles"),
+ 
+ extra_poles  : setdifference(setify(poles_T),setify(poles_Q)),
+ missing_poles: setdifference(setify(poles_Q),setify(poles_T)),
+ if (member(inf,extra_poles)) then (
+  AA: stackmap_set(AA,"extra_poles",extra_poles),
+  AA: stackmap_set(AA,"answernote","extra pole at infinity"),
+  AA: stackmap_set(AA,"feedback",sconcat(
+   "Your answer contains a constant term or a positive power of ",tex0(var),
+   " which should not be there; you should only have terms of the form ",
+   tex0((var - alpha)^(-k)),"."
+  )),
+  return(AA)
+ ),
+ if (length(extra_poles) > 0) then (
+  AA: stackmap_set(AA,"extra_poles",extra_poles),
+  AA: stackmap_set(AA,"answernote","extra poles"),
+  AA: stackmap_set(AA,"feedback",sconcat(
+   "Your answer has a pole at ",tex0(var = first(extra_poles)),
+   ".  There should not be a pole at that point, so you must have found ",
+   "the wrong general form for the partial fraction expansion."
+  )),
+  return(AA)
+ ),
+ if (member(inf,missing_poles)) then (
+  AA: stackmap_set(AA,"missing_poles",missing_poles),
+  AA: stackmap_set(AA,"answernote","missing pole at infinity"),
+  AA: stackmap_set(AA,"feedback",sconcat(
+   "Your answer is missing some terms.  As well as any terms of the form ",
+   tex0((var-alpha)^(-k)),", you also need a constant term or some positive ",
+   "powers of ",tex0(var),"."
+  )),
+  return(AA)
+ ),
+ if (length(missing_poles) > 0) then (
+  AA: stackmap_set(AA,"missing_poles",missing_poles),
+  AA: stackmap_set(AA,"answernote","missing poles"),
+  AA: stackmap_set(AA,"feedback",sconcat(
+   "Your answer is missing some terms.  You have poles in the following place(s): ",
+   tex0(map(lambda([p],var = p),stackmap_get(T,"poles"))),
+   ".  There are some other values of ",tex0(var)," where you should also have ",
+   "poles, so you must have found the wrong general form for the partial ",
+   "fraction expansion."
+  )),
+  return(AA)
+ ),
+ orders_Q : stackmap_get(Q,"orders"),
+ orders_T : stackmap_get(T,"orders"),
+ for pole in stackmap_get(Q,"poles") do (
+  o_T: stackmap_get(orders_T,pole),
+  o_Q: stackmap_get(orders_Q,pole),
+  if (not(o_T = o_Q)) then (
+   if (pole = inf) then (
+    AA: stackmap_set(AA,"answernote","wrong order at infinity"),
+    AA: stackmap_set(AA,"feedback",sconcat(
+     "Your answer has the wrong order at infinity.  In other words, you have ",
+     "the wrong number of terms of the form ",tex0(x^k)," with \\(k\\geq 0\\)."
+    )),
+    return(AA)
+   ) else (
+    AA: stackmap_set(AA,"answernote","wrong orders"),
+    AA: stackmap_set(AA,"feedback",sconcat(
+     "Your answer has poles in the right places, but one or more of the poles have ",
+     "the wrong order, so you must have found the wrong general form for the ",
+     "partial fraction expansion."
+    )),
+    return(AA)
+   )
+  )
+ ),
+ if (not(stackmap_get(AA,"answernote") = "")) then (return(AA)),
+
+ pparts_Q : stackmap_get(Q,"pparts"),
+ pparts_T : stackmap_get(T,"pparts"),
+ for pole in stackmap_get(Q,"poles") do (
+  if (not(stackmap_get(pparts_T,pole) = stackmap_get(pparts_Q,pole))) then (
+   AA: stackmap_set(AA,"answernote","wrong coeffs"),
+   AA: stackmap_set(AA,"feedback",sconcat(
+    "Your answer has the right general form.  In particular, you have the right ",
+    "poles and the right orders.  However, some or all of the coefficients are wrong. "
+   )),
+   return(AA)
+  )
+ ),
+ if (not(stackmap_get(AA,"answernote") = "")) then (return(AA)),
+
+ AA: stackmap_set(AA,"score",1),
+ AA: stackmap_set(AA,"answernote","correct"),
+ return(AA)
+)$
