@@ -1035,3 +1035,26 @@ table.HELM_table th:last-child {
 #page-question-type-stack #id_inversetrig option {
     unicode-bidi: plaintext;
 }
+
+.que.stack div.builder_used {
+    width: 100%;
+    min-height: 30px;
+    border: 1px solid black;
+    border-radius: 3px;
+    padding: 5px;
+    background: white;
+}
+
+.que.stack div.builder_unused {
+    width: 100%;
+    min-height: 30px;
+    border: 1px solid #2020F0;
+    border-radius: 3px;
+    padding: 5px;
+    background: white;
+}
+
+.que.stack li.builder_phrase:hover {
+ cursor: pointer
+}
+
