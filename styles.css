@@ -1058,3 +1058,58 @@ table.HELM_table th:last-child {
  cursor: pointer
 }
 
+.que.stack table.edged {
+    border-collapse: collapse;
+}
+
+.que.stack table.edged td {
+    padding: 3px 0.5em;
+    margin-left: 3px;
+    border: 1px solid #CCCCCC; 
+}
+
+.que.stack td.prompt {
+    vertical-align : top;
+    text-align: right
+}
+
+.que.stack td.input {
+    vertical-align : top;
+    text-align: left
+}
+
+.que.stack .hoverpointer:hover {
+ cursor: pointer
+}
+
+.que.stack .slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%; 
+  height: 25px; 
+  background: #d3d3d3; 
+  outline: none; 
+  opacity: 0.7; 
+  -webkit-transition: .2s; 
+  transition: opacity .2s;
+}
+
+.que.stack .slider:hover {
+  opacity: 1; 
+}
+
+.que.stack .slider::-webkit-slider-thumb {
+  -webkit-appearance: none; 
+  appearance: none;
+  width: 25px; 
+  height: 25px; 
+  background: #4CAF50; 
+  cursor: pointer; 
+}
+
+.que.stack .slider::-moz-range-thumb {
+  width: 25px; 
+  height: 25px; 
+  background: #4CAF50; 
+  cursor: pointer; 
+}
