@@ -183,6 +183,7 @@ $string['inputtypeunits'] = 'Units';
 $string['inputtypeequiv'] = 'Equivalence reasoning';
 $string['inputtypestring'] = 'String';
 $string['inputtypenumerical'] = 'Numerical';
+$string['inputtypebuilder'] = 'Builder';
 $string['numericalinputmustnumber'] = 'This input expects a number.';
 $string['numericalinputvarsforbidden'] = 'This input expects a number, and so may not contain variables.';
 $string['numericalinputmustfloat'] = 'This input expects a floating point number.';
@@ -384,10 +385,17 @@ $string['ddl_unknown'] = 'STACK received <code>{$a}</code> but this is not liste
 
 $string['teacheranswershow']      = 'A correct answer is \( {$a->display} \), which can be typed in as follows: {$a->value}';
 $string['teacheranswershow_disp'] = 'A correct answer is {$a->display}.';
+$string['teacheranswershow_builder'] = 'A correct answer is as follows: <br/><div>{$a->display}</div>';
 $string['teacheranswershow_mcq']  = 'A correct answer is: {$a->display}';
 $string['teacheranswershownotes'] = 'A correct answer is not provided for this input.';
 $string['teacheranswerempty']     = 'This input can be left blank.';
 
+$string['builder_badanswer'] = 'The model answer field for this input is malformed: <code>{$a}</code>. ';
+$string['builder_badkey'] = 'The following key contains invalid characters: <code>{$a}</code>. ';
+$string['builder_badresponse'] = 'The response for this input is malformed';
+$string['builder_duplicates'] = 'There are duplicated keys. ';
+$string['builder_gotunrecognisedvalue'] = 'Invalid input.';
+$string['builder_instructions'] = 'Construct your answer in the upper panel by clicking on phrases in the lower panel.  If you click on a phrase by mistake, just click on it again to move it back to the lower panel.  You may not need to use all of the phrases. ';
 
 // Admin settings.
 $string['settingajaxvalidation'] = 'Instant validation';
