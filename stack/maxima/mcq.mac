@@ -23,7 +23,7 @@ mrl_setup(true_opts,false_opts,num_opts) := block([opts,note],
  *     [[40,false,"forty"],[41,false,"forty one"],[42,true,"forty two"]]
  * 5) A boolean labelled list like
  *     [[A,false,"(A) 40"],[B,false,"(B) 41"],[C,true,"(C) 42"]]
- * 6) A boolean list with feedback like
+ * 6) A boolean list with feedback or explanation like
  *     [[40,false,"You fool!"],[41,false,"Ugh"],[42,true,"Very wise."]]
  *
  * Items should always appear in the following order:
@@ -66,10 +66,16 @@ mrl_setup(true_opts,false_opts,num_opts) := block([opts,note],
  * need to use the mcq_trim() function to create a version of the
  * list that can be used by stack.
  *
- * The function mcq_feedback() can be used to analyse various
- * aspects of the student's answer.  It has the prefix mcq for
- * consistency, but is really only useful for multiple response
- * questions.
+ * The function mr_feedback() can be used to analyse various
+ * aspects of the student's answer.  It returns a list 
+ * [score,answer_note,feedback,M], where M is a stackmap encoding
+ * various information, such as the number of correct options
+ * that have not been ticked.  From M we can extract various 
+ * alternative forms of feedback, such as "All the options that 
+ * you have ticked are correct, but there is one more correct 
+ * option that you have not ticked."  This function is most 
+ * useful in cases where each option has been supplied with an
+ * explanation of why it is correct or incorrect.
  */
 
 /* This function adds boolean flags to an option set that does
