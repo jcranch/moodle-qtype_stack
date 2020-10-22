@@ -60,7 +60,11 @@ end>
 In this repository, the `master` branch is the same as the main 
 Stack repository.  There are a number of feature branches as listed
 below, and there is `sheffield` branch that merges all the feature
-branches.  Some of the feature branches could be considered for 
+branches.  (There are also a number of similar things that are 
+still waiting to be ported from AiM; we will deal with these when
+we need them, later this semester or over the Christmas break.)
+
+Some of the feature branches could be considered for 
 incorporation in the main Stack repository, although additional 
 work will be needed to prepare for this in almost all cases.  In 
 particular:
