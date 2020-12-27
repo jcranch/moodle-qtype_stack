@@ -104,7 +104,7 @@ int_problem_test(sa,Q,[opts]) := block(
    "In fact, the derivative of your answer is:",
    newline,
    "\\[ \\frac{d}{d",tex1(var),"}\\left(",tex1(sa),"\\right)=",tex1(diffans),". \\]",newline,
-   "So, you must have done something wrong.",newline
+   "So, you must have done something wrong.<br/><br/>",newline
   ),
   an : "incorrect",
 
@@ -120,7 +120,7 @@ int_problem_test(sa,Q,[opts]) := block(
      "<code class=\"warn\">",
      simplode(extra,", "),
      "</code><br/>",
-     "Note that variable names are case-sensitive; you should not enter <code>A</code>> for <code>a</code> or vice-versa. ",
+     "Note that variable names are case-sensitive; you should not enter <code>A</code> for <code>a</code> or vice-versa. ",
      "One of the extra variables could be intended as the integration constant but where is the original variable of integration?"
     ),
     an : "extra vars",
