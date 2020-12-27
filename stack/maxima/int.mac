@@ -263,7 +263,7 @@ check_naive_subs(sa,Q,ff,e) := block(
    "\\[ ",tex1(integrand=ff),", \\]",newline,
    "and the integral becomes",newline,
    "\\[ ",tex1(integral)," = ",tex1('int(ff,uu))," = ",tex1(FF)," = ",tex1(err1)," \\]",newline,
-   "In the first equality we replaced ",tex0(integrand)," by ",tex0(f)," (which is correct) ",
+   "In the first equality we replaced ",tex0(integrand)," by ",tex0(ff)," (which is correct) ",
    "and also \\(d",tex1(var),"\\) by \\(d",tex1(uu),"\\).  ",
    "This second replacement is incorrect, because \\(d",tex1(var),"\\neq d",tex1(uu),"\\). ",
    "To determine the relationship between \\(d",tex1(var),"\\) and \\(d",tex1(uu),"\\), ",
