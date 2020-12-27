@@ -79,7 +79,22 @@ int_problem_test(sa,Q,[opts]) := block(
 
  if (ok or diff_ok) then (
   an : "correct",
-  sc : 1
+  sc : 1,
+  if not(intconst = "ignore") and length(extra) = 0 then (
+   if member("C",stackmap_get(t,"correct")) then (
+    fb : sconcat(fb,"You neglected to include an integration constant.")
+   ) else (
+    fb : sconcat(fb,
+     "You should have included an integration constant, such as \\(+C\\)."
+    )
+   ),
+   if intconst = "insist" then (
+    sc : 0
+   ) else (
+    fb : sconcat(fb," However, no penalty was imposed for this.")
+   ),
+   an : sconcat(an,"; no +C")
+  )
  ) else (
   fb : sconcat(
    "The derivative of your answer should be equal to the function that you were asked to integrate, which was:",
@@ -140,24 +155,19 @@ int_problem_test(sa,Q,[opts]) := block(
     ns : check_naive_subs(sa,Q,op(integrand)(newvar),newvar = args(integrand)[1]),
     fb : sconcat(fb,ns[1]),
     if not(ns[2] = "") then (an : ns[2])
+  ),
+  if not(intconst = "ignore") and length(extra) = 0 then (
+   if member("C",stackmap_get(t,"correct")) then (
+    fb : sconcat(fb,"<br/><br/>","Also, you neglected to include an integration constant.")
+   ) else (
+    fb : sconcat(fb,"<br/><br/>",
+     "Also, you should have included an integration constant, such as \\(+C\\)."
+    )
+   ),
+   an : sconcat(an,"; no +C")
   )
  ),
 
- if not(intconst = "ignore") and length(extra) = 0 then (
-  if member("C",stackmap_get(t,"correct")) then (
-   fb : sconcat(fb,"You neglected to include an integration constant.")
-  ) else (
-   fb : sconcat(fb,
-    "You should have included an integration constant, such as \\(+C\\)."
-   )
-  ),
-  if intconst = "insist" then (
-   sc : 0
-  ) else (
-   fb : sconcat(fb," However, no penalty was imposed for this.")
-  ),
-  an : sconcat(an,"; no +C")
- ),
  return([sc,fb,an])
 )$
 
