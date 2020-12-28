@@ -10,4 +10,5 @@ load("two_d_critical.mac");
 load("partial_fractions.mac");
 load("svg.mac");
 load("extra_inequalities.mac");
+load("vectors");
 load("stack_misc.mac");
