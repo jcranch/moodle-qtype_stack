@@ -1,0 +1,297 @@
+int_problem_split(Q) := block(
+ [q,J,ta,f,v,aa,bb],
+ q : ["stack_map"],
+ if (safe_op(Q) = "=") then (
+  J : lhs(Q),
+  ta : rhs(Q)
+ ) else (
+  J : Q,
+  ta : false
+ ),
+
+ n : length(args(J)),
+ 
+ if (not(safe_op(J) = "int") and n > 1) then (
+  return(false)
+ ),
+
+ f : args(J)[1],
+ v : args(J)[2],
+
+ if (n = 2) then (
+  if (ta = false) then (
+   ta : ev(int(f,v),simp)
+  ),
+  return (["stack_map",
+   ["integral",J],
+   ["integrand",f],
+   ["variable",v],
+   ["definite",false],
+   ["right_answer",ta]
+  ])
+ ) elseif (n = 4) then (
+  aa : args(J)[3],
+  bb : args(J)[4],
+  if (ta = false) then (
+   ta : ev(int(f,v,aa,bb),simp)
+  ),
+  return (["stack_map",
+   ["integral",J],
+   ["integrand",f],
+   ["variable",v],
+   ["definite",true],
+   ["a",aa],
+   ["b",bb],
+   ["right_answer",ta]
+  ])
+ ) else (
+  return(false)
+ )
+)$
+
+int_problem_test(sa,Q,[opts]) := block(
+ [q,rightans,integrand,var,fb,an,sc,ok,diffans,diff_ok,t,missing,extra,base,expt,ns,newvar0,newvar],
+
+ if length(opts) >= 1 then (
+  intconst : opts[1]
+ ) else (
+  intconst : "ignore"
+ ),
+
+ q : int_problem_split(Q),
+ if stackmap_get(q,"definite") then return(false),
+ 
+ rightans  : stackmap_get(q,"right_answer"),
+ integrand : stackmap_get(q,"integrand"),
+ var       : stackmap_get(q,"variable"),
+
+ fb : "",
+ an : "",
+ sc : 0,
+ 
+ ok : ATAlgEquiv(sa,rightans)[2],
+ diffans : ev(diff(sa,var),simp),
+ diff_ok : ATAlgEquiv(diffans,integrand)[2],
+
+ t : check_vars(sa,integrand),
+ missing : stackmap_get(t,"missing"),
+ extra   : stackmap_get(t,"extra"),
+
+ if (ok or diff_ok) then (
+  an : "correct",
+  sc : 1,
+  if not(intconst = "ignore") and length(extra) = 0 then (
+   if member("C",stackmap_get(t,"correct")) then (
+    fb : sconcat(fb,"You neglected to include an integration constant.")
+   ) else (
+    fb : sconcat(fb,
+     "You should have included an integration constant, such as \\(+C\\)."
+    )
+   ),
+   if intconst = "insist" then (
+    sc : 0
+   ) else (
+    fb : sconcat(fb," However, no penalty was imposed for this.")
+   ),
+   an : sconcat(an,"; no +C")
+  )
+ ) else (
+  fb : sconcat(
+   "The derivative of your answer should be equal to the function that you were asked to integrate, which was:",
+   newline,
+   "\\[",tex1(integrand),"\\]",
+   newline,
+   "In fact, the derivative of your answer is:",
+   newline,
+   "\\[ \\frac{d}{d",tex1(var),"}\\left(",tex1(sa),"\\right)=",tex1(diffans),". \\]",newline,
+   "So, you must have done something wrong.<br/><br/>",newline
+  ),
+  an : "incorrect",
+
+  if length(missing) = 0 and length(extra) > 1 then (
+   fb : sconcat(fb,
+    "Your answer seems to include at least one superfluous integration constant, one is enough!"
+   )
+  ),
+  if length(missing) > 0 then (
+   if length(extra) > 0 then (
+    fb : sconcat(fb,
+     "Your answer involves the following variable(s) that do not occur in the integrand: ",
+     "<code class=\"warn\">",
+     simplode(extra,", "),
+     "</code><br/>",
+     "Note that variable names are case-sensitive; you should not enter <code>A</code> for <code>a</code> or vice-versa. ",
+     "One of the extra variables could be intended as the integration constant but where is the original variable of integration?"
+    ),
+    an : "extra vars",
+    if length(intersect(setify(extra),{"u","v","w","U","V","W"})) > 0 then (
+     fb : sconcat(fb,
+      "The problem may be as follows.  When we evaluate an integral like ",
+      "\\(\\int(2x+1)^5dx\\) by substitution, we put \\(u=2x+1\\) so ",
+      "\\(dx=du/2\\) and then the integral becomes ",
+      "\\[ \\int \\frac{u^5}{2} du  = \\frac{u^6}{12}. \\]",
+      "We then have to backsubstitute \\(u=2x+1\\) to get a final answer of ",
+      "\\((2x+1)^6/12\\).  If we forget the last step, we end up with an ",
+      "extra variable called <code>u</code>.  The same thing can happen ",
+      "if we introduce new variables (often called \\(u\\) and \\(v\\)) ",
+      "when integrating by parts, and forget to backsubstitute the ",
+      "definitions of \\(u\\) and \\(v\\) at the end of the calculation."
+     )
+    ) 
+   )
+  ) elseif  safe_op(integrand) = "^" then (
+   base : args(integrand)[1],
+   expt : args(integrand)[2],
+   if not(diff(base,var) = 1) and freeof(var,expt) then (
+    newvar0 : find_new_var(["u","v","w","t","x","y","z"],[Q,sa]),
+    newvar : eval_string(newvar0),
+    ns : check_naive_subs(sa,Q,newvar ^ expt,newvar = base),
+    fb : sconcat(fb,ns[1]),
+    if not(ns[2] = "") then (an : ns[2])
+   )
+  ) elseif member(safe_op(integrand),basic_functions) and length(args(integrand)) = 1 then (
+    newvar0 : find_new_var(["u","v","w","t","x","y","z"],[Q,sa]),
+    newvar : eval_string(newvar0),
+    ns : check_naive_subs(sa,Q,op(integrand)(newvar),newvar = args(integrand)[1]),
+    fb : sconcat(fb,ns[1]),
+    if not(ns[2] = "") then (an : ns[2])
+  ),
+  if not(intconst = "ignore") and length(extra) = 0 then (
+   if member("C",stackmap_get(t,"correct")) then (
+    fb : sconcat(fb,"<br/><br/>","Also, you neglected to include an integration constant.")
+   ) else (
+    fb : sconcat(fb,"<br/><br/>",
+     "Also, you should have included an integration constant, such as \\(+C\\)."
+    )
+   ),
+   an : sconcat(an,"; no +C")
+  )
+ ),
+
+ return([sc,fb,an])
+)$
+
+defint_problem_test(sa,Q) := block(
+ [q,rightans,integrand,var,aa,bb,sc,fb,an],
+ q : int_problem_split(Q),
+ if not(stackmap_get(q,"definite")) then return(false),
+ rightans  : stackmap_get(q,"right_answer"),
+ integrand : stackmap_get(q,"integrand"),
+ var       : stackmap_get(q,"variable"),
+ aa        : stackmap_get(q,"a"),
+ bb        : stackmap_get(q,"b"),
+ 
+ sc : 0, fb : "", an : "",
+
+ if ATAlgEquiv(sa,rightans)[2] then (
+  sc : 1,
+  an : "correct"
+ ) elseif ATAlgEquiv(sa,-rightans)[2] then (
+  fb : "Possibly you evaluated the limits in the wrong order.",
+  an : "reversed limits"
+ ) else (
+  tt : check_vars(sa,rightans),
+  extra : stackmap_get(tt,"extra"),
+  missing : stackmap_get(tt,"missing"),
+  if member(string(var),extra) then (
+   fb : sconcat(
+    "You were asked to calculate the <em>definite</em> integral of ",
+    tex0(integrand),
+    ", with limits ",tex0(var=aa)," and ",tex0(var=bb),
+    ", so your answer should not depend on ",tex0(var),". ",
+    "For example, \\(\\int x^3\\,dx=x^4/4\\) (which does depend on \\(x\\)) ",
+    "but \\int_0^2 x^3\\,dx=4\\) (which does not depend on \\(x\\))."
+   ),
+   an : "indefinite"
+  ) else (
+   an : "incorrect"
+  )
+ ),
+
+ return([sc,fb,an])
+)$
+
+defint_show_subs(Q,F) := block(
+ [q,rightans,integrand,var,aa,bb,Fa,Fb,L0,L1,L2,L3,s],
+
+ q : int_problem_split(Q),
+ rightans  : stackmap_get(q,"right_answer"),
+ integrand : stackmap_get(q,"integrand"),
+ var       : stackmap_get(q,"variable"),
+ aa        : stackmap_get(q,"a"),
+ bb        : stackmap_get(q,"b"),
+ Fa : limit(F,var,aa),
+ Fb : limit(F,var,bb),
+ L0 : sconcat("\\int_{",tex1(var=aa),"}^{",tex1(bb),"} ",tex1(integrand),"\\,d",tex1(var)),
+ L1 : sconcat("\\left[",tex1(F),"\\right]_{",tex1(var=aa),"}^{",tex1(bb),"}"),
+ L2 : sconcat("\\left(",tex1(Fb),"\\right)-\\left(",tex1(Fa),"\\right)"),
+ L3 : tex1(Fb - Fa),
+ s : sconcat(L0, " &=& ",L1," \\\\",newline," &= ",L2," \\\\",newline," &= ",L3),
+ if not(Fb - Fa = rightans) then (
+  s : sconcat(s," \\\\",newline," &= ",tex1(rightans))
+ ),
+ s : sconcat("\\[ \\begin{array}{rcl}",newline,s,newline," \\end{array}\\] ",newline),
+
+ return(s)
+)$
+
+check_naive_subs(sa,Q,ff,e) := block(
+ [q,rightans,integral,integrand,var,uu,UU,FF,dxdu,err1,err2,is_err1,is_err2,an,fb],
+ q : int_problem_split(Q),
+ rightans  : stackmap_get(q,"right_answer"),
+ integral  : stackmap_get(q,"integral"),
+ integrand : stackmap_get(q,"integrand"),
+ var       : stackmap_get(q,"variable"),
+ uu : lhs(e),
+ UU : rhs(e),
+ FF : int(ff,uu),
+ if diff(UU,x) = 0 then return(["",""]),
+ dxdu : 1/diff(UU,var),
+ err1 : ev(subst(uu = UU,FF),simp),
+ err2 : ev(err1 * dxdu,simp),
+ is_err1 : ATAlgEquiv(sa,err1)[2],
+ is_err2 : ATAlgEquiv(sa,err2)[2],
+
+ an : "", fb : "",
+ 
+ if is_err1 then (
+  an : "Naive substitution 1",
+  fb : sconcat(
+   "Perhaps your working was as follows: Put ",newline,
+   "\\[ ",tex1(uu = UU),", \\]",newline,
+   "so",newline,
+   "\\[ ",tex1(integrand=ff),", \\]",newline,
+   "and the integral becomes",newline,
+   "\\[ ",tex1(integral)," = ",tex1('int(ff,uu))," = ",tex1(FF)," = ",tex1(err1)," \\]",newline,
+   "In the first equality we replaced ",tex0(integrand)," by ",tex0(ff)," (which is correct) ",
+   "and also \\(d",tex1(var),"\\) by \\(d",tex1(uu),"\\).  ",
+   "This second replacement is incorrect, because \\(d",tex1(var),"\\neq d",tex1(uu),"\\). ",
+   "To determine the relationship between \\(d",tex1(var),"\\) and \\(d",tex1(uu),"\\), ",
+   "you need to calculate the derivative \\(d",tex1(uu),"/d",tex1(var),"\\)."
+  )
+ ) elseif is_err2 then (
+  an : "Naive substitution 2",
+  fb : sconcat(
+   "Perhaps your working was as follows: Put ",newline,
+   "\\[ ",tex1(uu = UU),", \\]",newline,
+   "so",newline,
+   "\\[ ",tex1(integrand=ff),", \\]",newline,
+   "and",newline,
+   "\\[ \\frac{d",tex1(var),"}{d",tex1(uu),"} = \\left(\\frac{d",tex1(uu),"}{d",tex1(var),"}\\right)^{-1}=",tex1(dxdu)," \\]",newline,
+   "The integral becomes",newline,
+   "\\[ ",tex1(integral)," = \\int ",tex1(ff)," \\frac{d",tex1(var),"}{d",tex1(uu),"} d",tex1(uu),
+   " = ",
+   "\\frac{d",tex1(var),"}{d",tex1(uu),"} \\int ",tex1(ff),"\\,d",tex1(uu),
+   " = ",
+   "\\left(",tex1(dxdu),"\\right)\\left(",tex1(FF),"\\right)",
+   " = ",
+   tex1(err2),
+   " \\]",newline,
+   "The second equality is incorrect: you cannot just move the factor of ",
+   "\\(\\frac{d",tex1(var),"}{d",tex1(uu),"}\\) ",
+   "through the integral sign."
+  )
+ ),
+
+ return([fb,an])
+)$

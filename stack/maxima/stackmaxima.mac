@@ -74,7 +74,7 @@ stack_reset_vars(ex) := block(kill(i, j, e, pi, Pi, PI));
 /* Execute this command to ensure values have been set. */
 stack_reset(true);
 
-alias(int,integrate);        /* Allows integrate to be called with int()    */
+int([ex]) := apply(integrate,ex); /* Replaces alias(int,integrate) */
 alias(cosec,csc);            /* Corresponds to current student expectations */
 alias(cosech,csch);          /* Corresponds to current student expectations */
 
@@ -301,6 +301,20 @@ stack_disp_fractions(ex) := block(
 /* This is needed to tweak the display of noun derivatives. */
 nary("blankmult", 0, 0);
 texput("blankmult", " ", nary);
+
+inttex(u) := block([o,n,s],
+ o : args(u),
+ n : length(o),
+ s : "\\int",
+ if n >= 3 then (s : sconcat(s,"_{",tex1(o[3]),"}")),
+ if n >= 4 then (s : sconcat(s,"^{",tex1(o[4]),"}")),
+ if n >= 1 then (s : sconcat(s," ",tex1(o[1]))),
+ if n >= 2 then (s : sconcat(s,"\\,d",tex1(o[2]))),
+ return(s)
+)$
+
+texput(int,inttex);
+texput(nounify(int),inttex);
 
 /* ****************************************************** */
 /* Random numbers                                         */

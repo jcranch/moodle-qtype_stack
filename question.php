@@ -984,7 +984,9 @@ class qtype_stack_question extends question_graded_automatically_with_countback
      * @return bool whether this question uses randomisation.
      */
     public function has_random_variants() {
-        return preg_match('~\brand~', $this->questionvariables) || preg_match('~\bmultiselqn~', $this->questionvariables);
+        return preg_match('~\brand~', $this->questionvariables) ||
+               preg_match('~\bmultiselqn~', $this->questionvariables) ||
+               preg_match('~(\b|_)shuffle~', $this->questionvariables);
     }
 
     public function get_num_variants() {
