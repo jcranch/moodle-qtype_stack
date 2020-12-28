@@ -1,0 +1,320 @@
+to_ijk(u) := block([],
+ if (listp(u) and length(u) = 3) then (
+  return(u[1] * i + u[2] * j + u[3] * k)
+ ) else (
+  return(false)
+ )
+);
+
+to_ijk_display(u) := block([],
+ if (listp(u) and length(u) = 3) then (
+  return(u[1] * stackvector(i) + u[2] * stackvector(j) + u[3] * stackvector(k))
+ ) else (
+  return(false)
+ )
+);
+
+to_ij(u) := block([],
+ if (listp(u) and length(u) = 2) then (
+  return(u[1] * i + u[2] * j)
+ ) else (
+  return(false)
+ )
+);
+
+to_ij_display(u) := block([],
+ if (listp(u) and length(u) = 2) then (
+  return(u[1] * stackvector(i) + u[2] * stackvector(j))
+ ) else (
+  return(false)
+ )
+);
+
+scalar_product(u,v) := block([p],
+ if (listp(u) and listp(v) and length(u) = length(v)) then (
+  return(sum(u[p] * v[p],p,1,length(u)))
+ ) else (
+  return(false)
+ )
+);
+
+vector_norm(u) := sqrt(scalar_product(u,u));
+
+unit_vector(u) := u / vector_norm(u);
+
+vector_angle(u,v) := acos(scalar_product(u,v)/(vector_norm(u) * vector_norm(v)));
+
+vector_product(u,v) := block([],
+ if (listp(u) and listp(v) and length(u) = 3 and length(v) = 3) then (
+  return (
+   [u[2] * v[3] - u[3] * v[2],
+    u[3] * v[1] - u[1] * v[3],
+    u[1] * v[2] - u[2] * v[1]]
+  )
+ ) else (
+  return(false)
+ )
+);
+
+naive_product(u,v) := block([],
+ if (listp(u) and listp(v) and length(u) = length(v)) then (
+  return (
+   u * v
+  )
+ ) else (
+  return(false)
+ )
+);
+
+vector_eq(u,v) := block([i,ok],
+ if (not(listp(u) and listp(v) and length(u) = length(v))) then (
+  return(false)
+ ),
+ ok : true,
+ for i from 1 thru length(u) do (
+  if (not(ATAlgEquiv(u[i],v[i])[2])) then (
+   ok : false,
+   return(ok)
+  )
+ ),
+ return(ok)
+);
+
+ijk_scalarp(u) := expressionp(u) and freeof(i,u) and freeof(j,u) and freeof(k,u);
+
+check_scalar_vector(u,[coeffp_]) := block([ue,ci,cj,ck],
+ if (emptyp(coeffp_)) then (
+  coeffp : real_numberp
+ ) else (
+  coeffp : coeffp_[1]
+ ),
+ if (coeffp(u)) then (
+  return([
+   "stack_map",
+   ["type","scalar"],
+   ["scalar_value",u]
+  ])
+ ) elseif (listp(u)) then (
+  if (length(u) = 2) then (
+   return([
+    "stack_map",
+    ["type","vector_2"],
+    ["vector_2_value",u],
+    ["vector_ij_value",u[1] * i + u[2] * j],
+    ["vector_ij_display",u[1] * stackvector(i) + u[2] * stackvector(j)]
+   ])
+  ) elseif (length(u) = 3) then (
+   return([
+    "stack_map",
+    ["type","vector_3"],
+    ["vector_3_value",u],
+    ["vector_ijk_value",u[1] * i + u[2] * j + u[3] * k],
+    ["vector_ijk_display",u[1] * stackvector(i) + u[2] * stackvector(j) + u[3] * stackvector(k)]
+   ])
+  ) else (
+   return([
+    "stack_map",
+    ["type","list"],
+    ["list_length",length(u)],
+    ["list_value",u]
+   ])
+  )
+ ) else (
+  ue : expand(u),
+  ci : coeff(ue,i),
+  cj : coeff(ue,j),
+  ck : coeff(ue,k),
+  if (coeffp(ci) and coeffp(cj) and coeffp(ck) and
+      ev(expand(ue - ci * i - cj * j - ck * k),simp) = 0) then (
+   if (ck = 0) then (
+    return([
+     "stack_map",
+     ["type","vector_ij"],
+     ["vector_2_value",[ci,cj]],
+     ["vector_ij_value",u],
+     ["vector_ij_display",ci * stackvector(i) + cj * stackvector(j)],
+     ["vector_3_value",[ci,cj,ck]],
+     ["vector_ijk_value",u],
+     ["vector_ijk_display",ci * stackvector(i) + cj * stackvector(j) + ck * stackvector(k)]
+    ])
+   ) else (
+    return([
+     "stack_map",
+     ["type","vector_ijk"],
+     ["vector_3_value",[ci,cj,ck]],
+     ["vector_ijk_value",u],
+     ["vector_ijk_display",ci * stackvector(i) + cj * stackvector(j) + ck * stackvector(k)]
+    ])
+   )
+  ) else (
+   return([
+    "stack_map",
+    ["type","other"],
+    ["other_value",u]
+   ])
+  )
+ ) 
+);
+
+check_scalar(u,[coeffp_]) := block([T,t],
+ T : apply(check_scalar_vector,cons(u,coeffp_)),
+ t : stackmap_get(T,"type"),
+ if (t = "scalar") then (
+  return([true,"scalar","",T])
+ ) elseif (t = "other") then (
+  return([false,"other","Your answer is supposed to be a scalar, but in fact it seems to be neither a scalar nor a vector",T])
+ ) else (
+  return([false,"vector","Your answer is supposed to be a scalar, but you have entered a vector",T])
+ )
+);
+
+check_vector_ijk(u,[coeffp_]) := block([T,t],
+ T : apply(check_scalar_vector,cons(u,coeffp_)),
+ t : stackmap_get(T,"type"),
+ if (t = "vector_ij" or t = "vector_ijk") then (
+  return([true,"vector_ijk","",T])
+ ) elseif (t = "vector_2" or t = "vector_3" or t = "list") then (
+  return([false,"list","Your answer is supposed to be a vector written as a combination of \\(\\mathbf{i}\\), \\(\\mathbf{j}\\) and \\(\\mathbf{k}\\).  For example, it could be something like \\(3\\mathbf{i}-2\\mathbf{k}\\), which can be entered as <code>3*i-2*k</code>.  You have instead entered a list enclosed in square brackets, which is not the form that is required here",T])
+ ) elseif (t = "scalar") then (
+  return([false,"list","Your answer is supposed to be a vector, but you have entered a scalar.",T])
+ ) else (
+  return([false,"other","Your answer is supposed to be a vector, but in fact it seems to be neither a scalar nor a vector",T])
+ )
+);
+
+check_vector_3(u,[coeffp_]) := block([T,t],
+ T : apply(check_scalar_vector,cons(u,coeffp_)),
+ t : stackmap_get(T,"type"),
+ if (t = "vector_ij" or t = "vector_ijk") then (
+  return([false,"vector_ijk","Your answer is supposed to be a vector given as a list with square brackets.  For example, it could be something like \\([2,6,-3]\\).  You have instead entered a linear combination of \\(\\mathbf{i}\\), \\(\\mathbf{j}\\) and \\(\\mathbf{k}\\), which is not the form that is required here.",T])
+ ) elseif (t = "vector_2") then (
+  return([false,"vector_2","Your answer is supposed to be a 3-dimensional vector, but you have entered a 2-dimensional vector.",T])
+ ) elseif (t = "vector_3") then (
+  return([true,"vector_3","",T])
+ ) elseif (t = "list") then (
+  return([false,"list","Your answer is supposed to be a 3-dimensional vector.  You have entered a list with square brackets, but it does not have three entries, so it is not a 3-dimensional vector.",T])
+ ) elseif (t = "scalar") then (
+  return([false,"list","Your answer is supposed to be a vector, but you have entered a scalar.",T])
+ ) else (
+  return([false,"other","Your answer is supposed to be a vector, but in fact it seems to be neither a scalar nor a vector",T])
+ )
+);
+
+check_vector_3_or_ijk(u,[coeffp_]) := block([T,t],
+ T : apply(check_scalar_vector,cons(u,coeffp_)),
+ t : stackmap_get(T,"type"),
+ if (t = "vector_ij" or t = "vector_ijk" or t = "vector_3") then (
+  return([true,"vector_3","",T])
+ ) elseif (t = "vector_2") then (
+  return([false,"vector_2","Your answer is supposed to be a 3-dimensional vector, but you have entered a 2-dimensional vector.",T])
+ ) elseif (t = "list") then (
+  return([false,"list","Your answer is supposed to be a 3-dimensional vector.  You have entered a list with square brackets, but it does not have three entries, so it is not a 3-dimensional vector.",T])
+ ) elseif (t = "scalar") then (
+  return([false,"list","Your answer is supposed to be a vector, but you have entered a scalar.",T])
+ ) else (
+  return([false,"other","Your answer is supposed to be a vector, but in fact it seems to be neither a scalar nor a vector",T])
+ )
+);
+
+check_vector_ij(u,[coeffp_]) := block([T,t],
+ T : apply(check_scalar_vector,cons(u,coeffp_)),
+ t : stackmap_get(T,"type"),
+ if (t = "vector_ij") then (
+  return([true,"vector_ijk","",T])
+ ) elseif (t = "vector_ijk") then (
+  return([false,"list","Your answer is supposed to be a 2-dimensional vector written as a combination of \\(\\mathbf{i}\\) and \\(\\mathbf{j}\\).  However, your answer involves \\(\\mathbf{k}\\) and so represents a 3-dimensional vector, not a 2-dimensional vector.",T])
+ ) elseif (t = "vector_2" or t = "vector_3" or t = "list") then (
+  return([false,"list","Your answer is supposed to be a 2-dimensional vector written as a combination of \\(\\mathbf{i}\\) and \\(\\mathbf{j}\\).  For example, it could be something like \\(3\\mathbf{i}-2\\mathbf{j}\\), which can be entered as <code>3*i-2*j</code>.  You have instead entered a list enclosed in square brackets, which is not the form that is required here",T])
+ ) elseif (t = "scalar") then (
+  return([false,"list","Your answer is supposed to be a vector, but you have entered a scalar.",T])
+ ) else (
+  return([false,"other","Your answer is supposed to be a vector, but in fact it seems to be neither a scalar nor a vector",T])
+ )
+);
+
+check_vector_2(u,[coeffp_]) := block([T,t],
+ T : apply(check_scalar_vector,cons(u,coeffp_)),
+ t : stackmap_get(T,"type"),
+ if (t = "vector_ij" or t = "vector_ijk") then (
+  return([false,"vector_ijk","Your answer is supposed to be a vector given as a list with square brackets.  For example, it could be something like \\([2,6,-3]\\).  You have instead entered a linear combination of \\(\\mathbf{i}\\), \\(\\mathbf{j}\\) and \\(\\mathbf{k}\\), which is not the form that is required here.",T])
+ ) elseif (t = "vector_2") then (
+  return([true,"vector_2","",T])
+ ) elseif (t = "vector_3") then (
+  return([false,"vector_3","Your answer is supposed to be a 2-dimensional vector, but you have entered a 3-dimensional vector.",T])
+ ) elseif (t = "list") then (
+  return([false,"list","Your answer is supposed to be a 2-dimensional vector.  You have entered a list with square brackets, but it does not have two entries, so it is not a 2-dimensional vector.",T])
+ ) elseif (t = "scalar") then (
+  return([false,"list","Your answer is supposed to be a vector, but you have entered a scalar.",T])
+ ) else (
+  return([false,"other","Your answer is supposed to be a vector, but in fact it seems to be neither a scalar nor a vector",T])
+ )
+);
+
+check_vector_2_or_ij(u,[coeffp_]) := block([T,t],
+ T : apply(check_scalar_vector,cons(u,coeffp_)),
+ t : stackmap_get(T,"type"),
+ if (t = "vector_ij" or t = "vector_2") then (
+  return([true,"vector_2","",T])
+ ) elseif (t = "vector_ijk" or t = "vector_3") then (
+  return([false,"vector_3","Your answer is supposed to be a 2-dimensional vector, but you have entered a 3-dimensional vector.",T])
+ ) elseif (t = "list") then (
+  return([false,"list","Your answer is supposed to be a 2-dimensional vector.  You have entered a list with square brackets, but it does not have two entries, so it is not a 2-dimensional vector.",T])
+ ) elseif (t = "scalar") then (
+  return([false,"list","Your answer is supposed to be a vector, but you have entered a scalar.",T])
+ ) else (
+  return([false,"other","Your answer is supposed to be a vector, but in fact it seems to be neither a scalar nor a vector",T])
+ )
+);
+
+check_scalar_product(u,v,ans,[coeffp_]) := block([T,t,fb],
+ T : apply(check_scalar_vector,cons(ans,coeffp_)),
+ t : stackmap_get(T,"type"),
+ if (t = "scalar") then (
+  if (ATAlgEquiv(ans,scalar_product(u,v))[2]) then (
+   return([true,"correct","",T])
+  ) else (
+   return([false,"incorrect scalar","",T])
+  )
+ ) elseif (vector_eq(ans,naive_product(u,v))) then (
+  fb : "You have apparently just multiplied the entries in the two vectors together to make a new vector.  That is not the correct definition of the scalar product.  In particular, your answer is a vector, but the scalar product is a scalar.",
+  return([false,"naive product",fb,T])
+ ) elseif (vector_eq(ans,vector_product(u,v))) then (
+  fb : "You were asked to calculate the scalar product, but you have calculated the vector product instead",
+  return([false,"vector product",fb,T])
+ ) elseif(t = "other") then (
+  fb : "Your answer is supposed to be the scalar product of two vectors, so it should be a scalar.  However, the answer that you have entered does not seem to be a either a scalar or a vector.",
+  return([false,"not scalar",fb,T])
+ ) else (
+  fb : "Your answer is supposed to be the scalar product of two vectors, so it should be a scalar.  However, the answer that you have entered is a vector.",
+  return([false,"vector",fb,T])
+ )
+);
+
+check_vector_product(u,v,ans,[coeffp_]) := block([T,t,fb,ans0],
+ T : apply(check_scalar_vector,cons(ans,coeffp_)),
+ t : stackmap_get(T,"type"),
+ uxv : vector_product(u,v),
+ if (t = "vector_3" or t = "vector_ijk" or t = "vector_ij") then (
+  ans0 : stackmap_get(T,"vector_3_value"),
+  if (vector_eq(ans0,uxv)) then (
+   return([true,"correct","",T])
+  ) elseif(vector_eq(map(abs,ans0),map(abs,uxv))) then (
+   return([false,"sign error","You have made one or more errors with \\(\\pm\\) signs",T])
+  ) elseif(vector_eq(ans0,naive_product(u,v))) then (
+   fb : "You have apparently just multiplied the entries in the two vectors together to make a new vector.  That is not the correct definition of the vector product.",
+   return([false,"naive product",fb,T])
+  ) else (
+   return([false,"incorrect product","",T])
+  )
+ ) elseif (t = "scalar") then (
+  fb : "Your answer is supposed to be the vector product of two 3-dimensional vectors, so it should be another 3-dimensional vector.  However, the answer that you have entered is a scalar.",
+  return([false,"scalar",fb,T])
+ ) elseif (t = "vector_2") then (
+  fb : "Your answer is supposed to be the vector product of two 3-dimensional vectors, so it should be another 3-dimensional vector.  However, the answer that you have entered is a 2-dimensional vector.",
+  return([false,"2-dimensional",fb,T])
+ ) else (
+  fb : "Your answer is supposed to be the scalar product of two vectors, so it should be a scalar.  However, the answer that you have entered is neither a vector nor a scalar.",
+  return([false,"not vector",fb,T])
+ )
+);
+
