@@ -60,9 +60,7 @@ end>
 In this repository, the `master` branch is the same as the main 
 Stack repository.  There are a number of feature branches as listed
 below, and there is `sheffield` branch that merges all the feature
-branches.  (There are also a number of similar things that are 
-still waiting to be ported from AiM; we will deal with these when
-we need them, later this semester or over the Christmas break.)
+branches.  
 
 Some of the feature branches could be considered for 
 incorporation in the main Stack repository, although additional 
@@ -163,8 +161,15 @@ particular:
   particular property.  Thus, this branch should probably not be 
   considered stable or mature.
 
+### int:
+  This branch defines functions for marking integration questions.
+  It tries to provide tailored feedback for a range of common mistakes.
+  It is not currently integrated with the standard Stack framework of
+  answer tests.  That should probably be done, but there are some 
+  decisions to make about the details.
+
 ### inv_trig_tex:
-  This tells Stack not to use notation like f^{-1}(x) or f^{2}(x).
+  This tells Stack not to use notation like f^{-1}(x) or f^{2}(x)
 
 ### mcq:
   This branch contains various code for dealing with multiple choice 
@@ -194,3 +199,14 @@ particular:
   This adds some functions for questions in which students are asked to
   find and classify critical points of functions of two variables.
  
+### Other things in the queue
+Here are some other things waiting to be translated from the AiM 
+framework
+* Code for double and triple integrals, especially for problems about
+  changing the order of integration.
+* Code for problems in linear algebra and matrix theory, including 
+  translation between matrices and systems of equations, formatting
+  of row-reduction calculations and so on.
+* Code for problems about the group theory of permutations.
+* Code for prolems about trigonometric equations with infinitely 
+  many solutions.
