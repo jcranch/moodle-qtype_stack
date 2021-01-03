@@ -537,6 +537,24 @@ check_vars(sa,ta) := block(
  return(t)
 )$
 
+lined_array_tex(T) := block([n,s,i,r,k],
+  n : apply(max,map(length,T)),
+  s : "\\begin{array}{|",
+  for i from 1 thru n do s : sconcat(s,"c|"),
+  s : sconcat(s,"}\\hline",newline),
+  for r in T do (
+    k : length(r),
+    for i from 1 thru k do (
+     if i < k then (
+      s : sconcat(s,r[i]," & ")
+    ) else (
+      s : sconcat(s,r[i]," \\\\ \\hline ",newline)
+    )
+   )
+  ),
+  s : sconcat(s,"\\end{array}")
+);
+
 show_config() := block([],return(["maxima_tempdir: ",maxima_tempdir,
                                         "IMAGE_DIR: ",IMAGE_DIR,
                                         "URL_BASE: ",URL_BASE]))$
