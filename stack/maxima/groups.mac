@@ -1,0 +1,35 @@
+cayley_table(G,m) := makelist(makelist(m(g,h),h,G),g,G);
+
+cayley_table_tex(G,m,texfun,opname) := block([],
+    H : cons(opname,map(texfun,G)),
+    T : cons(H,makelist(cons(texfun(g),makelist(texfun(m(g,h)),h,G)),g,G)),
+    return(lined_array_tex(T))
+);
+
+
+word_reduce(w) := block([u,v,ok,x,l,m],
+ v : makelist(if listp(x) then x else [x,1],x,w),
+ ok : false,
+ while not(ok) do (
+  ok : true,
+  u : [],
+  for x in v do (
+    l : length(u),
+    if l > 0 and first(x) = first(last(u)) then (
+     ok : false,
+     m : last(x) + last(last(u)),
+     u : firstn(u,l-1),
+     if not(m = 0) then u : append(u,[[first(x),m]])    
+    ) else (
+     u : append(u,[x])
+    )
+  )
+  ),
+  return(u)
+);
+
+word_tex(w) := block([],
+  v : makelist(if listp(x) then x else [x,1],x,w),
+  v : makelist(if (last(x) = 1)then string(x) else sconcat(string(x),"^{",last(x),"}"),x,v),
+  return(simplode(v,""))
+);
