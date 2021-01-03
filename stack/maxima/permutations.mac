@@ -1,0 +1,70 @@
+/* If we regard permutations as functions then Maxima's permult is
+   given by permult(r,s,t) = t o s o r, for example; we define
+   perm_comp(r,s,t) to be r o s o t instead.
+*/
+
+perm_comp([u]) := apply(permult,reverse(u));
+
+perm_id(n) := makelist(i,i,1,n);
+
+perm_order(u) := apply(lcm,map(length,perm_cycles(u)));
+
+perm_power(u,k) := block([l,n,v,w],
+ if not(integerp(k)) then error("Only integer powers supported"),
+ l : mod(k,perm_order(u)),
+ n : length(u),
+ v : u,
+ w : perm_id(n),
+ while l > 0 do (
+  if mod(l,2) = 1 then w : perm_comp(w,v),
+  l : floor(l/2),
+  v : perm_comp(v,v)
+ ),
+ return(w)
+);
+
+cycles_comp_as_perm([u]) := block([v,n],
+ if length(u) = 1 and listp(u) and every(listp,u) then v : u[1] else v : u,
+ n : apply(max,cons(1,flatten(v))),
+ return(perm_undecomp(reverse(v),n))
+);
+
+cycles_comp([u]) := perm_cycles(apply(cycles_comp_as_perm,u));
+
+cycles_eq(u,v) := block([n],
+ n : apply(max,append([1],flatten(u),flatten(v))),
+ return(ev(perm_undecomp(reverse(u),n) = perm_undecomp(reverse(v),n),pred))
+);
+
+repeated_entries(u) := block([v,w],
+ v : sort(u),
+ w : makelist(i,i,1,length(v)-1),
+ w : sublist(w,lambda([i],v[i]=v[i+1])),
+ w : map(lambda([i],v[i]),w),
+ w : unique(w),
+ return(w)
+);
+
+cycles_tex([u]) := block([],
+ if every(listp,u) then (
+  simplode(makelist(apply(cycles_tex,v),v,u)," ")
+ ) else (
+  return(sconcat("(",simplode(u,"\\;"),")"))   
+ ) 
+);
+
+cycles_string([u]) := block([],
+ if every(listp,u) then (
+  simplode(makelist(apply(cycles_string,v),v,u)," ")
+ ) else (
+  return(sconcat("(",simplode(u," "),")"))   
+ ) 
+);
+
+two_row_matrix(u) := block([n],
+ n : length(u),
+ return(matrix(makelist(i,i,1,n),u))
+);
+
+two_row_tex(u) := tex1(two_row_matrix(u));
+
