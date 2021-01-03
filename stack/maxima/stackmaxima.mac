@@ -132,6 +132,8 @@ stack_dispvalue(ex) := block(
 /* ********************************** */
 
 load("functs");
+load("combinatorics");
+
 /* Not yet testsed: load("vect"); */
 
 /* Load the logic package, but remove the "eq" infix operator which conflicts with too many existing things. */
