@@ -36,7 +36,7 @@ word_reduce_abelian(w) := block(
 
 word_id : [];
 
-word_prod([u]) := word_reduce(flatten(u));
+word_prod([u]) := word_reduce(apply(append,u));
 
 word_inv(w) := block([],
  v : makelist(if listp(x) then x else [x,1],x,w),
