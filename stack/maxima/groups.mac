@@ -50,3 +50,49 @@ word_tex(w) := block([],
   v : makelist(if (last(x) = 1)then string(x) else sconcat(string(x),"^{",last(x),"}"),x,v),
   return(simplode(v,""))
 );
+
+dihedralp(x) := ev(subvarp(x) and (op(x) = r or op(x) = s) and length(args(x)) = 1 and integerp(args(x)[1]),pred);
+dihedral_rotp(x) := ev(dihedralp(x) and op(x) = r,pred);
+dihedral_refp(x) := ev(dihedralp(x) and op(x) = s,pred);
+dihedral_sgn(x) := if op(x) = s then -1 else 1;
+
+dihedral_reducedp_aux(n,x) := 
+ ev(dihedralp(x) and args(x)[1] >= 0 and args(x)[1] < n,pred);
+
+dihedral_id(n) := r[0];
+
+dihedral_inv_aux(n,x) := block([k],
+ if not(dihedralp(x)) then error("argument is not dihedral"),
+ k : args(x)[1],
+ if op(x) = s then return(s[mod(k,n)]) else return(r[mod(-k,n)])
+);
+
+dihedral_prod_aux(n,[u]) := block([m,x,y,k,l],
+ m : length(u),
+ if m = 0 then (
+  return(dihedral_id(n))
+ ) else (
+  x : u[1],
+  if not(dihedralp(x)) then error("argument is not dihedral",x),
+  k : mod(args(x)[1],n),
+  x : apply(op(x),[k]),
+  if m = 1 then (
+   return(x)
+  ) else (
+   y : apply(dihedral_prod_aux,cons(n,rest(u))),
+   l : args(y)[1],
+   if op(x) = r then (
+    if op(y) = r then return(r[mod(k+l,n)]) else return(s[mod(k+l,n)])
+   ) else (
+    if op(y) = r then return(s[mod(k-l,n)]) else return(r[mod(k-l,n)])
+   )
+  )
+ )
+);
+
+dihedral_reducedp(n) := buildq([n0 : n],lambda([u],dihedral_reducedp_aux(n0,u))); 
+dihedral_inv(n) := buildq([n0 : n],lambda([u],dihedral_inv_aux(n0,u)));
+dihedral_prod(n) := buildq([n0 : n],lambda([[u]],apply(dihedral_prod_aux,cons(n0,u))));
+
+dihedral_elems(n) := append(makelist(r[i],i,0,n-1),makelist(s[i],i,0,n-1));
+
