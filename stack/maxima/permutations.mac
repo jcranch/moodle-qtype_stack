@@ -68,3 +68,15 @@ two_row_matrix(u) := block([n],
 
 two_row_tex(u) := tex1(two_row_matrix(u));
 
+fifteen_puzzle_tex(p) := block([ps,s,i,j,k],
+ ps : makelist(if (i = 16) then "*" else string(i), i, p),
+ s : sconcat("\\begin{array}{|c|c|c|c|} \\hline",newline),
+ for i from 0 thru 3 do (
+  for j from 0 thru 3 do (
+    k : 4 * i + j + 1,
+    if j < 3 then s : sconcat(s,ps[k]," & ") else s : sconcat(s,ps[k]," \\\\ \\hline",newline)
+  )
+ ),
+ s : sconcat(s,"\\end{array}",newline),
+ return(s)
+);
