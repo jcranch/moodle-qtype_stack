@@ -6,7 +6,6 @@ cayley_table_tex(G,m,texfun,opname) := block([],
     return(lined_array_tex(T))
 );
 
-
 word_reduce(w) := block([u,v,ok,x,l,m],
  v : makelist(if listp(x) then x else [x,1],x,w),
  ok : false,
@@ -14,18 +13,36 @@ word_reduce(w) := block([u,v,ok,x,l,m],
   ok : true,
   u : [],
   for x in v do (
-    l : length(u),
-    if l > 0 and first(x) = first(last(u)) then (
-     ok : false,
-     m : last(x) + last(last(u)),
-     u : firstn(u,l-1),
-     if not(m = 0) then u : append(u,[[first(x),m]])    
-    ) else (
-     u : append(u,[x])
-    )
-  )
+   l : length(u),
+   if l > 0 and first(x) = first(last(u)) then (
+    ok : false,
+    m : last(x) + last(last(u)),
+    u : firstn(u,l-1),
+    if not(m = 0) then u : append(u,[[first(x),m]])    
+   ) else (
+    u : append(u,[x])
+   )
   ),
-  return(u)
+  v : u
+ ),
+ u : makelist(if last(x) = 1 then first(x) else x,x,u),
+ return(u)
+);
+
+word_reduce_abelian(w) := block(
+ v : sort(makelist(if listp(x) then x else [x,1],x,w)),
+ return(word_reduce(v))
+);
+
+word_id : [];
+
+word_prod([u]) := word_reduce(flatten(u));
+
+word_inv(w) := block([],
+ v : makelist(if listp(x) then x else [x,1],x,w),
+ v : reverse(v),
+ v : makelist([first(x),-last(x)],x,v),
+ return(word_reduce(v))
 );
 
 word_tex(w) := block([],
