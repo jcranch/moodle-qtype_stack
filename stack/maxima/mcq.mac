@@ -111,7 +111,7 @@ mrq_add_bool(opts,right_opts) := block([o],
  * opts1 will be the corresponding list of entries in opts.
  */
  
-mcq_shuffle(opts,[k_]) := block([n,p,v,i],
+mcq_shuffle(opts,[k_]) := block([n,p,v,i,k],
  if (not(listp(opts))) then (return(false)),
  n : length(opts),
  k : n,
@@ -177,7 +177,7 @@ mr_feedback(ans,opts,[with_display_]) := block(
   is_correct : false, binary_score : 0, count_score : 0,
   count_note : "", crude_count_feedback : "", count_feedback : "",
   table_note : "", table_feedback : "", full_table_feedback : "",
-  i,opt,opt_string,M
+  i,opt,opt_ok,opt_string,M
  ],
 
  opt_ok(u) :=
