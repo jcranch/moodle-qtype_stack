@@ -358,3 +358,35 @@ mr_feedback(ans,opts,[with_display_]) := block(
  return([binary_score,table_note,table_feedback,M])
 )$
 
+mc_feedback(ans,opts,[with_display_]) := block(
+  [with_display,opt_ok,sc,an,fb,opt,m],
+
+ opt_ok(u) :=
+  ev(listp(u) and length(u) >= 2 and (u[2] = true or u[2] = false),pred),
+  
+ if (not(listp(opts) and every(opt_ok,opts))) then (
+  return(false)
+ ),
+
+ simp : true,
+ with_display : ev(length(with_display_) > 0 and with_display_[1] = true,pred),
+
+ sc : 0, an : "", fb : "",
+
+ m : if with_display then 4 else 3,
+
+ for opt in opts do (
+   if ans = opt[1] then (
+     if opt[2] then (
+       sc : 1,
+       an : "correct"
+     ) else (
+       an : "incorrect"
+     ),
+     if length(opt) >= m then fb : opt[m],
+     return(0)
+   )
+ ),
+
+ return([sc,an,fb])
+)$
