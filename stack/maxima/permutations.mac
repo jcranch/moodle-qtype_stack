@@ -73,10 +73,10 @@ fifteen_puzzle_tex(p) := block([ps,s,i,j,k],
  s : sconcat("\\begin{array}{|c|c|c|c|} \\hline",newline),
  for i from 0 thru 3 do (
   for j from 0 thru 3 do (
-    k : 4 * i + j + 1,
+    k : 4*i+j+1,
     if j < 3 then s : sconcat(s,ps[k]," & ") else s : sconcat(s,ps[k]," \\\\ \\hline",newline)
   )
  ),
- s : sconcat(s,"\\end{array}",newline),
+ s : sconcat(s,"\\end{array}",newline),
  return(s)
 );
