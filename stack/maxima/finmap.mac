@@ -10,7 +10,7 @@
  * of f should be a subset of the entries of B).
  */
 make_finmap(A,B,f,[opts_]) := block(
- [i,j,nA,nB,A_set,B_set,img,is_inj,is_surj,is_bij,
+ [i,j,nA,nB,A_set,B_set,img,is_inj,is_surj,is_bij,is_const,
   fibre,fibres,index_fibre,index_fibres,nf,f0,
   noninj_witness,nonsurj_witness,F],
  simp : true,
@@ -38,6 +38,7 @@ make_finmap(A,B,f,[opts_]) := block(
  
  is_inj : true,
  is_surj : true,
+ is_const : ev(length(img) <= 1,pred),
  noninj_witness : false,
  nonsurj_witness : false,
  inverse : [],
@@ -91,6 +92,7 @@ make_finmap(A,B,f,[opts_]) := block(
       ["is_injective",is_inj],
       ["is_surjective",is_surj],
       ["is_bijective",is_bij],
+      ["is_constant",is_const],
       ["noninjective_witness",noninj_witness],
       ["nonsurjective_witness",nonsurj_witness]],
 
