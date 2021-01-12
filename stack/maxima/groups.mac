@@ -38,18 +38,20 @@ word_id : [];
 
 word_prod([u]) := word_reduce(apply(append,u));
 
-word_inv(w) := block([],
+word_inv(w) := block([v],
  v : makelist(if listp(x) then x else [x,1],x,w),
  v : reverse(v),
  v : makelist([first(x),-last(x)],x,v),
  return(word_reduce(v))
 );
 
-word_tex(w) := block([],
+word_tex(w) := block([v],
   v : makelist(if listp(x) then x else [x,1],x,w),
-  v : makelist(if (last(x) = 1)then string(x) else sconcat(string(x),"^{",last(x),"}"),x,v),
+  v : makelist(if (last(x) = 1) then string(first(x)) else sconcat(string(first(x)),"^{",last(x),"}"),x,v),
   return(simplode(v,""))
 );
+
+word_tex0(w) := sconcat("\\(",word_tex(w),"\\)");
 
 dihedralp(x) := ev(subvarp(x) and (op(x) = r or op(x) = s) and length(args(x)) = 1 and integerp(args(x)[1]),pred);
 dihedral_rotp(x) := ev(dihedralp(x) and op(x) = r,pred);
