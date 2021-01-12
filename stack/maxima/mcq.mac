@@ -396,7 +396,7 @@ show_opts(opts) := block(
  [html,o],
  html : sconcat("<table class=\"edged\">",newline),
  for o in opts do (
-  html : sconcat(html,
+  html : sconcat(html,
     " <tr>",newline,
     " <td width=\"10\">",string(o[1]),"</td>",newline,
     " <td width=\"500\">",o[3],if o[2] then " (T)" else " (F)","</td>",newline,
