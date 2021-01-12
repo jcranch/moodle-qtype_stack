@@ -43,7 +43,7 @@ builder_needs_intro(s) := block(
   "This refers to ",t,", but at the point where this phrase appears, ",
   "we do not know what this means.  Before using the symbol ",t,", ",
   "you need to introduce it in some way, with a phrase like ",
-  "'Let ",t,"be an integer' or 'Consider an element \\(",s,"\\in X\\)' ",
+  "'Let ",t," be an integer' or 'Consider an element \\(",s,"\\in X\\)' ",
   "or 'There exists a permutation ",t," such that...'."
  ))
 );
