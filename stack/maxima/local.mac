@@ -15,3 +15,4 @@ load("stack_misc.mac");
 load("int.mac");
 load("permutations.mac");
 load("groups.mac");
+load("builder.mac");
