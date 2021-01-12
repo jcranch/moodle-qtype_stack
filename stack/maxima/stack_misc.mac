@@ -541,7 +541,7 @@ lined_array_tex(T) := block([n,s,i,r,k],
   n : apply(max,map(length,T)),
   s : "\\begin{array}{|",
   for i from 1 thru n do s : sconcat(s,"c|"),
-  s : sconcat(s,"}\\hline",newline),
+  s : sconcat(s,"}\\hline",newline),
   for r in T do (
     k : length(r),
     for i from 1 thru k do (
