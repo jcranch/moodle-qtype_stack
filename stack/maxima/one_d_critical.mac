@@ -1,0 +1,253 @@
+analyse_critical_points_one_d(f) := block(
+ [vars,x,y,fx,fy,fxx,fxy,fyy,H,HD,sols,bare_critical_points,critical_points,
+  num_max,num_min,num_sad,num_unk,s,x0,y0,fxx0,HD0,t,C,T,i,sol
+ ],
+ vars : sort(listofvars(f)),
+ if (not(length(vars) = 1)) then (
+  return(false)
+ ),
+ x : vars[1],
+ fx : diff(f,x),
+ fxx : diff(fx,x),
+ sols : solve([fx=0]),
+ bare_critical_points : [],
+ critical_points : [],
+ num_max : 0,
+ num_min : 0,
+ num_unk : 0,
+ i : 0,
+ for s in sols do (
+  x0 : subst(s,x),
+  if (real_numberp(x0)) then (
+   i : i + 1,
+   fxx0 : float(subst(s,fxx)),
+   t : "unknown",
+   if (fxx0 > 0) then (
+    t : "local minimum", num_min : num_min + 1
+   ) elseif (fxx0 < 0) then (
+    t : "local maximum", num_max : num_max + 1
+   ),
+   if (t = "unknown") then (num_unk : num_unk + 1),
+   C : ["stack_map",
+    ["index",i],
+    ["x",x0],
+    ["f",subst(s,f)],
+    ["fxx",subst(s,fxx)],
+    ["type",t]
+   ],
+   bare_critical_points : endcons(subst(s,x),bare_critical_points) ,
+   critical_points : endcons(C,critical_points) 
+  )
+ ),
+ sol0 : sconcat(
+  "To find and classify the critical points of the function ",
+  "\\(f=",tex1(f),"\\), we first calculate the first and second ",
+  "derivative with respect to the variable ",tex0(x),": ",
+  newline,
+  "\\[ \\begin{array}{rcl}",newline,
+  "  f' &=& ",tex1(fx)," \\\\",newline,
+  "  f'' &=& ",tex1(fxx)," \\\\",newline,
+  "\\end{array} \\]",newline,
+  "The critical points occur where \\(f'=0\\), or equivalently ",
+  tex0(fx=0),". By solving this equation we find that ",
+  "the critical points are as follows: ",newline,
+  "\\[ ",simplode(map(tex1,bare_critical_points),", ")," \\]",
+  newline
+ ),
+ sol1 : sconcat(
+  "To classify these, we examine the sign of \\(f''\\) at the various ",
+  "critical points.  The rules are as follows:",newline,
+  "<ul>",newline,
+  " <li>If \\(f''\\gt 0\\) then we have a loca minimum. </li>",newline,
+  " <li>If \\(f''\\lt 0\\) then we have a loca maximum. </li>",newline,
+  " <li>If \\(f''=0\\) then we probably have an inflection point ",
+  "  but there are some special cases where the story is more ",
+  "  complicated. ",newline,
+  " </li>",newline,
+  "</ul>",newline
+ ),
+ sol2 : sconcat(
+  "The relevant values can be tabulated as follows: ",newline,
+  "<table class=\"edged\">",newline,
+  " <tr>",newline,
+  "  <td>\\(",x,"\\)</td>",newline,
+  "  <td>\\(f''\\)</td>",newline,
+  "  <td>Type</td>",newline,
+  " </tr>",newline
+ ),
+ for c in critical_points do (
+  sol2 : sconcat(sol2,
+   " <tr>",newline,
+   "  <td>",tex0(stackmap_get(c,"x")),"</td>",newline,
+   "  <td>",tex0(stackmap_get(c,"fxx")),"</td>",newline,
+   "  <td>",stackmap_get(c,"type"),"</td>",newline,
+   " </tr>",newline
+  )
+ ),
+ sol2 : sconcat(sol2,"</table>",newline),
+ sol : sconcat(sol0,sol1,sol2),
+ T : ["stack_map",
+  ["x",x],
+  ["f",f],
+  ["fx",fx],
+  ["fxx",fxx],
+  ["bare_critical_points",bare_critical_points],
+  ["critical_points",critical_points],
+  ["num_local_maxima",num_max],
+  ["num_local_minima",num_min],
+  ["num_unknown",num_unk],
+  ["worked_solution",sol]
+ ],
+ return(T)
+)$
+
+check_critical_point_one_d(c,T) := block(
+ [x_name,x0,t0,an,fb,c1,fx0,t1,i],
+ x_name : stackmap_get(T,"x"),
+ [x0,t0] : c,
+ is_correct : true,
+ an : "",
+ fb : "",
+ if (complex_numberp(x0)) then (
+  if (not(real_numberp(x0))) then (
+   an : "not real",
+   fb : sconcat(
+    "One of your points is ",tex0(x0),", but this is not a real number. ",
+    "Complex solutions are not relevant here."
+   ),
+   return([0,an,fb,0])  
+  )
+ ) else (
+  an : "not numeric",
+  fb : sconcat(
+   "One of your points is ",tex0(x0),", but this is not valid. ",
+   "Your answers should just be numbers, not depending on any variables."
+  ),
+  return([0,an,fb,0])
+ ),
+ match : false,
+ for c1 in stackmap_get(T,"critical_points") do (
+  x1 : stackmap_get(c1,"x"),
+  if (match = false and ATAlgEquiv(x0,x1)[2]) then (
+   match : c1
+  )
+ ),
+ if (match = false) then (
+  fx0 : subst([x_name=x0],stackmap_get(T,"fx")),
+  if (ATAlgEquiv(fx0,0)[2]) then (
+   an : "correct but unmatched",
+   fb : sconcat(
+     "You appear to have found a correct critical point that is ",
+     "not in the list of critical points supplied by the teacher, ",
+     "so something has gone wrong. You should consult the teacher about this."
+    ),
+    return([0,an,fb,0])  
+   ) else (
+   if (float(fx0) > 0) then ( 
+    an : "fx positive",
+    fb : sconcat(
+     "You said that there is a critical point at ",
+     tex0(x0),", but that is not correct.  In fact, the ",
+     "derivative \\(f'\\) is strictly ",
+     "positive at the point ",tex0(x0),". Thus, if we increase ",
+     "\\(",x_name,"\\) a little then \\(f\\) will increase, and if ",
+     "we decrease \\(",x_name,"\\) a little then \\(f\\) will decrease, ",
+     "which means that we do not have a stationary point."
+    )
+   ) else (
+    an : "fx negative",
+    fb : sconcat(
+     "You said that there is a critical point at ",
+     tex0(x0),", but that is not correct.  In fact, the ",
+     "derivative \\(f'\\) is strictly ",
+     "negative at the point ",tex0(x0),". Thus, if we increase ",
+     "\\(",x_name,"\\) a little then \\(f\\) will decrease, and if ",
+     "we decrease \\(",x_name,"\\) a little then \\(f\\) will increase, ",
+     "which means that we do not have a stationary point."
+    )
+   ),
+   return([0,an,fb,0])      
+  )
+ ) else (
+  i : stackmap_get(match,"index"),
+  t1 : stackmap_get(match,"type"),
+  if (t0 = t1) then (
+   return([1,"correct","",i])
+  ) else (
+   if (t1 = "unknown") then (
+    an : sconcat("unproven ",t0),
+    fb : sconcat(
+     "You said that the critical point at ",tex0(x0)," is a ",
+     t0,", but in fact the usual criteria do not allow us to decide ",
+     "the nature of this critical point."
+    )
+   ) else (
+    if (t0 = "unknown") then (
+     an : "should be known",
+     fb : sconcat(
+      "You said that the critical point at ",tex0(x0)," was of ",
+      "unknown type.  In fact, however, the usual criteria allow us ",
+      "to determine the nature of this critical point."
+     )
+    ) else (
+     an : "incorrect type",
+     fb : sconcat(
+      "You said that there is a ",t0," at ",tex0(x0),".  It is ",
+      "correct that there is a critical point at ",tex0(x0),", but ",
+      "it is not a ",t0,"."
+     )
+    )
+   ),
+   return([0,an,fb,i])
+  )
+ )
+)$
+
+check_critical_points(cp,T) := block(
+ [C,found,not_found,sc,an,fb,c],
+ C : stackmap_get(T,"critical_points"),
+ found : {},
+ not_found : setify(makelist(i,i,1,length(C))),
+ sc : 0, an : "correct", fb : "",
+ for c in cp do (
+  if (an = "correct") then (
+   [sc,an,fb,i] : check_critical_point(c,T),
+   if member(i,found) then (
+    an : "duplicate",
+    fb : sconcat(
+     "You have listed the critical point at ",
+     tex0(c[1])," more than once. "
+    )
+   ) else (
+    found : union(found,{i}),
+    not_found : setdifference(not_found,{i})
+   )
+  )
+ ),
+ if (not(an = "correct")) then (
+  return([0,an,fb])
+ ),
+ if (length(not_found) > 0) then (
+  if (length(cp) = 0) then (
+   an : "empty",
+   fb : sconcat(
+    "You are claiming that there are no critical points, but that is not correct."
+   )
+  ) elseif (length(cp) = 1) then (
+   an : "one incomplete",
+   fb : sconcat(
+    "You have correctly found and classified one of the critical points, ",
+    "but there is at least one more critical point that you have not found."
+   )
+  ) else (
+   an : "incomplete",
+   fb : sconcat(
+    "You have correctly found and classified some of the critical points, ",
+    "but there is at least one more critical point that you have not found."
+   )
+  ),
+  return([0,an,fb])
+ ) else (
+  return([1,"correct",""])
+ )
+)$
