@@ -1,4 +1,4 @@
-analyse_critical_points(f) := block(
+analyse_critical_points_two_d(f) := block(
  [vars,x,y,fx,fy,fxx,fxy,fyy,H,HD,sols,bare_critical_points,critical_points,
   num_max,num_min,num_sad,num_unk,s,x0,y0,fxx0,HD0,t,C,T,i,sol
  ],
@@ -145,7 +145,7 @@ analyse_critical_points(f) := block(
  return(T)
 )$
 
-check_critical_point(c,T) := block(
+check_critical_point_two_d(c,T) := block(
  [x_name,y_name,x0,y0,t0,an,fb,c1,xy1,fx0,fy0,t1,i],
  x_name : stackmap_get(T,"x"),
  y_name : stackmap_get(T,"y"),
