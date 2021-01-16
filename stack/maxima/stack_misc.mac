@@ -452,6 +452,37 @@ complex_compare(a,b) := block([a0,b0],
  )
 )$
 
+/* randpoly() returns a random polynomial.
+   The first argument is the variable; if omitted, it defaults to x
+   The second argument is the number of terms; if omitted, it defaults to 3
+   The third argument controls the coefficients.  If it is a set or list s, 
+     then the coefficients are randomly chosen from s.  If it is a positive 
+     integer n, then the coefficients are randomly chosen from {0,...,n-1}.
+     Note that if 0 is allowed as a coefficient, then the actual number of
+     terms may be less than specified by the second argument.  If no third
+     argument is given, then coefficients are randomly chosen from the list
+     [-5,-4,-3,-2,2,3,4,5].
+   The fourth argument controls the exponents.  It can again be a set, list
+     or positive integer, and it defaults to [0,...,9].  It must be at 
+     least as large as the specified number of terms.
+*/
+randpoly([u]) := block([var,num_terms,coeffs,exps,exp_list],
+ var : if length(u) >= 1 then u[1] else x,
+ num_terms : if length(u) >= 2 then u[2] else 3,
+ if not(integerp(num_terms) and num_terms > 0) then error("randpoly error: second argument must be a positive integer"),
+ coeffs : if length(u) >= 3 then u[3] else [-5,-4,-3,-2,2,3,4,5],
+ exps : if length(u) >= 4 then u[4] else [0,1,2,3,4,5,6,7,8,9],
+ if setp(exps) then exps : sort(listify(exps)),
+ if integerp(exps) then (
+    if exps <= 0 then error("randpoly error: fourth argument must be a set or list or positive integer"),
+    exps : makelist(i,i,0,exps-1)
+ ),
+ if not(listp(exps)) then error("randpoly error: fourth argument must be a set or list or positive integer"),
+ if length(exps) < num_terms then (error("randpoly error: more terms than possible")),
+ exp_list : rand_selection(exps,num_terms),
+ return(sum(rand(coeffs) * var ^ exp_list[i],i,1,num_terms))
+);
+
 show_config() := block([],return(["maxima_tempdir: ",maxima_tempdir,
                                         "IMAGE_DIR: ",IMAGE_DIR,
                                         "URL_BASE: ",URL_BASE]))$
