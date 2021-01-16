@@ -1,6 +1,6 @@
 analyse_critical_points_one_d(f) := block(
  [vars,x,y,fx,fy,fxx,fxy,fyy,H,HD,sols,bare_critical_points,critical_points,
-  num_max,num_min,num_sad,num_unk,s,x0,y0,fxx0,HD0,t,C,T,i,sol
+  num_max,num_min,num_sad,num_unk,s,x0,y0,fxx0,HD0,t,C,T,i,sol,c,d
  ],
  vars : sort(listofvars(f)),
  if (not(length(vars) = 1)) then (
@@ -14,6 +14,7 @@ analyse_critical_points_one_d(f) := block(
  critical_points : [],
  num_max : 0,
  num_min : 0,
+ num_inf : 0,
  num_unk : 0,
  i : 0,
  for s in sols do (
@@ -26,6 +27,19 @@ analyse_critical_points_one_d(f) := block(
     t : "local minimum", num_min : num_min + 1
    ) elseif (fxx0 < 0) then (
     t : "local maximum", num_max : num_max + 1
+   ),
+   if (t = "unknown") then (
+    fs : taylor(subst([x=x0+x],f),x,0,6),
+    if not(fs = 0) then (
+     d : lopow(fs,x),
+     if evenp(d) then (
+      c : coeff(fs,x,d),
+      if (is(c > 0)) then (t : "local minimum", num_min : num_min + 1),
+      if (is(c < 0)) then (t : "local maximum", num_max : num_max + 1)
+     ) else (
+      t : "inflection", num_inf : num_inf + 1
+     )
+    )
    ),
    if (t = "unknown") then (num_unk : num_unk + 1),
    C : ["stack_map",
@@ -58,8 +72,8 @@ analyse_critical_points_one_d(f) := block(
   "To classify these, we examine the sign of \\(f''\\) at the various ",
   "critical points.  The rules are as follows:",newline,
   "<ul>",newline,
-  " <li>If \\(f''\\gt 0\\) then we have a loca minimum. </li>",newline,
-  " <li>If \\(f''\\lt 0\\) then we have a loca maximum. </li>",newline,
+  " <li>If \\(f''\\gt 0\\) then we have a local minimum. </li>",newline,
+  " <li>If \\(f''\\lt 0\\) then we have a local maximum. </li>",newline,
   " <li>If \\(f''=0\\) then we probably have an inflection point ",
   "  but there are some special cases where the story is more ",
   "  complicated. ",newline,
