@@ -225,7 +225,7 @@ check_critical_points_one_d(cp,T) := block(
  sc : 0, an : "correct", fb : "",
  for c in cp do (
   if (an = "correct") then (
-   [sc,an,fb,i] : check_critical_point(c,T),
+   [sc,an,fb,i] : check_critical_point_one_d(c,T),
    if member(i,found) then (
     an : "duplicate",
     fb : sconcat(
