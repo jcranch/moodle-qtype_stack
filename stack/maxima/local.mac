@@ -1,3 +1,4 @@
 /* Site-specific Maxima code can be put here */
 
+load("one_d_critical.mac");
 load("two_d_critical.mac");
