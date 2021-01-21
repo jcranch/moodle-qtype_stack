@@ -217,7 +217,7 @@ check_critical_point_one_d(c,T) := block(
  )
 )$
 
-check_critical_points(cp,T) := block(
+check_critical_points_one_d(cp,T) := block(
  [C,found,not_found,sc,an,fb,c],
  C : stackmap_get(T,"critical_points"),
  found : {},

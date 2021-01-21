@@ -6,6 +6,7 @@ load("diff.mac");
 load("finmap.mac");
 load("functions.mac");
 load("mcq.mac");
+load("one_d_critical.mac");
 load("two_d_critical.mac");
 load("partial_fractions.mac");
 load("svg.mac");
