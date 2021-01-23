@@ -14,6 +14,7 @@ load("extra_inequalities.mac");
 load("vectors");
 load("stack_misc.mac");
 load("int.mac");
+load("double_int.mac");
 load("permutations.mac");
 load("groups.mac");
 load("builder.mac");
