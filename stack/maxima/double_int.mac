@@ -1,0 +1,347 @@
+double_int_problem_split(Q) := block(
+ [J,K,ta],
+ if (safe_op(Q) = "=") then (
+  J : lhs(Q),
+  ta : rhs(Q)
+ ) else (
+  J : Q,
+  ta : ev(Q,nouns,simp)
+ ),
+
+ if (not(safe_op(J) = "int") and length(args(J)) >= 4) then (
+  return(false)
+ ),
+
+ K : args(J)[1],
+ outer_var : args(J)[2],
+ outer_lower : args(J)[3],
+ outer_upper : args(J)[4],
+
+ if (not(safe_op(K) = "int") and length(args(K)) >= 4) then (
+  return(false)
+ ),
+
+ integrand : args(K)[1],
+ inner_var : args(K)[2],
+ inner_lower : args(K)[3],
+ inner_upper : args(K)[4],
+
+ return([
+  "stack_map",
+  ["outer_integral",J],
+  ["outer_variable",args(J)[2]],
+  ["outer_lower_limit",args(J)[3]],
+  ["outer_upper_limit",args(J)[4]],
+  ["inner_integral",K],
+  ["inner_variable",args(K)[2]],
+  ["inner_lower_limit",args(K)[3]],
+  ["inner_upper_limit",args(K)[4]],
+  ["integrand",args(K)[1]],
+  ["right_answer",ta]
+ ])
+)$
+
+double_int_test_limits(ans,Q) := block(
+ [ta,ta_outer_variable,ta_inner_variable,
+  ta_outer_lower_limit,ta_outer_upper_limit,
+  ta_inner_lower_limit,ta_inner_upper_limit,
+  ta_integrand,sa,
+  outer_integral,integrand,
+  outer_variable,inner_variable,
+  outer_lower_limit,outer_upper_limit,
+  inner_lower_limit,inner_upper_limit,
+  an,fb,limits_ok,E,outer_lower_limit0,outer_upper_limit0,
+  xxx,yyy,zzz,yyyy,zzzz,yyzz,i
+ ],
+
+ ta : double_int_problem_split(Q),
+ ta_outer_variable    : stackmap_get(ta,"outer_variable"),
+ ta_inner_variable    : stackmap_get(ta,"inner_variable"),
+ ta_outer_lower_limit : stackmap_get(ta,"outer_lower_limit"),
+ ta_outer_upper_limit : stackmap_get(ta,"outer_upper_limit"),
+ ta_inner_lower_limit : stackmap_get(ta,"inner_lower_limit"),
+ ta_inner_upper_limit : stackmap_get(ta,"inner_upper_limit"),
+ ta_integrand         : stackmap_get(ta,"integrand"),
+ 
+ sa : ["stack_map"],
+
+ outer_integral : ans,
+
+ if not(safe_op(outer_integral) = "int" and length(args(outer_integral)) = 4) then (
+  fb : sconcat(
+   "Your answer is not of the form <code>int(...,...,...,...)</code>. ",
+   "Please read the instructions for entering integrals carefully."
+  ),
+  return([0,"not int",fb,sa])
+ ),
+
+ inner_integral : args(outer_integral)[1],
+ outer_variable : args(outer_integral)[2],
+ outer_lower_limit : args(outer_integral)[3],
+ outer_upper_limit : args(outer_integral)[4],
+
+ sa : append(sa,[
+  ["inner_integral",inner_integral],
+  ["outer_variable",outer_variable],
+  ["outer_lower_limit",outer_lower_limit],
+  ["outer_upper_limit",outer_upper_limit]
+ ]),
+ 
+ if not(safe_op(inner_integral) = "int" and length(args(inner_integral)) = 4) then (
+  fb : sconcat(
+   "Your answer is not of the form <code>int(int(...,...,...,...),...,...,...)</code>. ",
+   "Please read the instructions for entering integrals carefully."
+  ),
+  return([0,"inner not int",fb,sa])
+ ),
+
+ integrand : args(inner_integral)[1],
+ inner_variable : args(inner_integral)[2],
+ inner_lower_limit : args(inner_integral)[3],
+ inner_upper_limit : args(inner_integral)[4],
+
+ sa : append(sa,[
+  ["integrand",integrand],
+  ["inner_variable",inner_variable],
+  ["inner_lower_limit",inner_lower_limit],
+  ["inner_upper_limit",inner_upper_limit]
+ ]),
+ 
+ if not(outer_variable = ta_outer_variable) then (
+  if (outer_variable = ta_inner_variable) then (
+   fb : sconcat(
+    "You have used ",tex0(outer_variable)," as the outer variable, ",
+    "but you were supposed to use ",tex0(ta_outer_variable),
+    " instead."
+   ),
+   return([0,"inner as outer",fb,sa])
+  ) else (
+   fb : sconcat(
+    "You should have entered something like ",
+    "<code>int(...,",string(ta_outer_variable),",...,...)</code> ",
+    "(if you want to use ",tex0(ta_outer_variable)," as the outer variable) or ",
+    "<code>int(...,",string(ta_inner_variable),",...,...)</code> ",
+    "(if you want to use ",tex0(ta_inner_variable)," as the outer variable). ",
+    "You have instead entered <code>int(...,",string(outer_variable),",...,...)</code>, ",
+    "which does not make sense."
+   ),
+   return([0,"unknown outer variable",fb,sa])
+  )
+ ),
+
+ if not(freeof(outer_variable,outer_lower_limit)) then (
+  an : sconcat("outer lower limit depends on ",string(outer_variable)),
+  fb : sconcat(
+   "Your outer variable is ",tex0(outer_variable),", and the lower limit ",
+   "of your outer integral is ",tex0(outer_lower_limit),", which depends on ",
+   tex0(outer_variable),". This does not make sense.  The limits of the ",
+   "outer integral must be constants, not depending on either of the ",
+   "integration variables."
+  ),
+  return([0,an,fb,sa])
+ ),
+
+ if not(freeof(outer_variable,outer_upper_limit)) then (
+  an : sconcat("outer upper limit depends on ",string(outer_variable)),
+  fb : sconcat(
+   "Your outer variable is ",tex0(outer_variable),", and the upper limit ",
+   "of your outer integral is ",tex0(outer_upper_limit),", which depends on ",
+   tex0(outer_variable),". This does not make sense.  The limits of the ",
+   "outer integral must be constants, not depending on either of the ",
+   "integration variables."
+  ),
+  return([0,an,fb,sa])
+ ),
+
+ if not(freeof(ta_inner_variable,outer_lower_limit)) then (
+  an : sconcat("outer lower limit depends on ",string(ta_inner_variable)),
+  fb : sconcat(
+   "The lower limit ",
+   "of your outer integral is ",tex0(outer_lower_limit),", which depends on ",
+   tex0(ta_inner_variable),". This does not make sense.  The limits of the ",
+   "outer integral must be constants, not depending on either of the ",
+   "integration variables."
+  ),
+  return([0,an,fb,sa])
+ ),
+
+ if not(freeof(ta_inner_variable,outer_upper_limit)) then (
+  an : sconcat("outer upper limit depends on ",string(ta_inner_variable)),
+  fb : sconcat(
+   "The upper limit ",
+   "of your outer integral is ",tex0(outer_upper_limit),", which depends on ",
+   tex0(ta_inner_variable),". This does not make sense.  The limits of the ",
+   "outer integral must be constants, not depending on either of the ",
+   "integration variables."
+  ),
+  return([0,an,fb,sa])
+ ),
+
+ if (inner_variable = outer_variable) then (
+  fb : sconcat(
+   "Both your inner integral and your outer integral are integrals with ",
+   "respect to ",tex0(outer_variable),". This does not make sense. The ",
+   "inner and outer integrals must use different variables."
+  ),
+  return([0,"repeated variable",fb,sa])
+ ),
+
+ if not(inner_variable = ta_inner_variable) then (
+  if (inner_variable = ta_outer_variable) then (
+   fb : sconcat(
+    "You have used ",tex0(inner_variable)," as the inner variable, ",
+    "but you were supposed to use ",tex0(ta_inner_variable),
+    " instead."
+   ),
+   return([0,"outer as inner",fb,sa])
+  ) else (
+   fb : sconcat(
+    "You should have entered something like ",
+    "<code>int(int(...,",string(ta_outer_variable),",...,...),...,...)</code> ",
+    "(if you want to use ",tex0(ta_outer_variable)," as the inner variable) or ",
+    "<code>int(int(...,",string(ta_inner_variable),",...,...),...,...)</code> ",
+    "(if you want to use ",tex0(ta_inner_variable)," as the inner variable). ",
+    "You have instead entered <code>int(...,",string(inner_variable),",...,...)</code>, ",
+    "which does not make sense."
+   ),
+   return([0,"unknown inner variable",fb,sa])
+  )
+ ),
+
+ if not(freeof(inner_variable,inner_lower_limit)) then (
+  an : sconcat("inner lower limit depends on ",string(inner_variable)),
+  fb : sconcat(
+   "Your inner variable is ",tex0(inner_variable),", and the lower limit ",
+   "of your inner integral is ",tex0(inner_lower_limit),", which depends on ",
+   tex0(inner_variable),". This does not make sense.  The limits of the ",
+   "inner integral can only depend on the outer variable."
+  ),
+  return([0,an,fb,sa])
+ ),
+
+ if not(freeof(inner_variable,inner_upper_limit)) then (
+  an : sconcat("inner upper limit depends on ",string(inner_variable)),
+  fb : sconcat(
+   "Your inner variable is ",tex0(inner_variable),", and the upper limit ",
+   "of your inner integral is ",tex0(inner_upper_limit),", which depends on ",
+   tex0(inner_variable),". This does not make sense.  The limits of the ",
+   "inner integral can only depend on the outer variable."
+  ),
+  return([0,an,fb,sa])
+ ),
+
+ if not(ATAlgEquiv(integrand,ta_integrand)[2]) then (
+  fb : sconcat(
+   "Your integrand is ",tex0(integrand),", but it should be ",tex0(ta_integrand),"."
+  ),
+  return([0,"wrong integrand",fb,["stack_map"]])  
+ ),
+
+ limits_ok : [
+  ATAlgEquiv(outer_lower_limit,ta_outer_lower_limit)[2],
+  ATAlgEquiv(outer_upper_limit,ta_outer_upper_limit)[2],
+  ATAlgEquiv(inner_lower_limit,ta_inner_lower_limit)[2],
+  ATAlgEquiv(inner_upper_limit,ta_inner_upper_limit)[2]
+ ],
+ 
+ sa : append(sa,[
+  ["limits_ok",limits_ok]
+ ]),
+
+ if (limits_ok = [true,true,true,true]) then (
+  return([1,"correct","",sa])
+ ),
+
+ if (ATAlgEquiv(outer_lower_limit,outer_upper_limit)[2]) then (
+  fb : sconcat(
+   "In your outer integral, the lower and upper limits are the same, ",
+   "which would mean that the integration region was empty."
+  ),
+  return([0,"outer limits equal",fb,sa])
+ ),
+
+ if (ATAlgEquiv(inner_lower_limit,inner_upper_limit)[2]) then (
+  fb : sconcat(
+   "In your inner integral, the lower and upper limits are the same, ",
+   "which would mean that the integration region was empty."
+  ),
+  return([0,"inner limits equal",fb,sa])
+ ),
+
+ if (is(outer_upper_limit < outer_lower_limit)) then (
+  fb : sconcat(
+   "In your outer integral, the lower limit is \\(",with_aprox(outer_lower_limit),"\\) ",
+   "and the upper limit is \\(",with_approx(outer_upper_limit),"\\), so the lower ",
+   "limit is larger than the upper limit.  This does not make sense."
+  ),
+  return([0,"outer limits reversed",fb,sa])
+ ),
+ 
+ limit_vars : setify(listofvars([outer_lower_limit,outer_upper_limit,
+                                 inner_lower_limit,inner_upper_limit])),
+ if not(setdifference(limit_vars,{outer_variable}) = {}) then (
+  fb : sconcat(
+   "Your answer has the right general form, but some or all of the ",
+   "integration limits are incorrect."
+  ),
+  return([0,"incorrect limits",fb,sa])
+ ),
+ 
+ E : errcatch(
+  outer_lower_limit0 : float(outer_lower_limit),
+  outer_upper_limit0 : float(outer_upper_limit),
+  yyyy : [],
+  zzzz : [],
+  good_order : false,
+  bad_order : false,
+  for i from 0 thru 50 do (
+   xxx : (1 - i * 0.02) * outer_lower_limit0 +
+              i * 0.02  * outer_upper_limit0,
+   yyy : float(subst([outer_variable = xxx],inner_lower_limit)),
+   zzz : float(subst([outer_variable = xxx],inner_upper_limit)),
+   if (yyy < zzz) then good_order : true,
+   if (yyy > zzz) then bad_order : true,
+   yyyy : endcons([yyy,zzz],yyyy),
+   zzzz : cons([yyy,zzz],zzzz)
+  ),
+  yyzz : append(yyyy,zzzz),
+  if (outer_variable = y and inner_variable = x) then (
+   yyzz : map(lambda([u],[u[2],u[1]]),yyzz)
+  ),
+  [
+   ["inner_lower_limit0",yyyy],
+   ["inner_upper_limit0",zzzz],
+   ["outline",yyzz],
+   ["inner_limits_sometimes_reversed",bad_order],
+   ["inner_limits_always_reversed",ev(bad_order and not(good_order),pred)]
+  ]
+ ),
+
+ if (not(E = [])) then (
+  sa : append(sa,E[1])
+ ),
+ 
+ if(stackmap_get(sa,"inner_limits_always_reversed") = true) then (
+  fb : sconcat(
+   "In the inner integral, your lower limit is always larger than the ",
+   "upper limit, which does not make sense."
+  ),
+  return([0,"inner limits reversed",fb,sa])
+ ),
+
+ if(stackmap_get(sa,"inner_limits_sometimes_reversed") = true) then (
+  fb : sconcat(
+   "For some values of ",tex0(outer_variable)," in the relevant range, ",
+   "your inner lower limit of ",tex0(inner_lower_limit)," is larger than ",
+   "your inner upper limit of ",tex0(inner_upper_limit),".  This does ",
+   "not make sense. "
+  ),
+  return([0,"inner limits sometimes reversed",fb,sa])
+ ),
+
+ fb : sconcat(
+  "Your answer has the right general form, but some or all of the ",
+  "integration limits are incorrect."
+ ),
+ return([0,"incorrect limits",fb,sa])
+)$
