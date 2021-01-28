@@ -24,14 +24,14 @@ builder_sol(opts) := block(
 
 builder_say_includes(phrase) := sconcat(
  "Your answer includes the following phrase: <br/>",newline,
- "<blockquote>",newline,
+ "<blockquote class=\"builder_phrase\">",newline,
  phrase,newline,
  "</blockquote>",newline
 );
 
 builder_say_excludes(phrase) := sconcat(
  "Your answer does not include the following phrase: <br/>",newline,
- "<blockquote>",newline,
+ "<blockquote class=\"builder_phrase\">",newline,
  phrase,newline,
  "</blockquote>",newline
 );
