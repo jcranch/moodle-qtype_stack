@@ -1064,6 +1064,11 @@ table.HELM_table th:last-child {
  cursor: pointer
 }
 
+.que.stack blockquote.builder_phrase {
+    margin-left: 30px;
+    color: #000022;
+}
+
 .que.stack table.edged {
     border-collapse: collapse;
 }
