@@ -24,14 +24,14 @@ builder_sol(opts) := block(
 
 builder_say_includes(phrase) := sconcat(
  "Your answer includes the following phrase: <br/>",newline,
- "<blockquote>",newline,
+ "<blockquote class=\"builder_phrase\">",newline,
  phrase,newline,
  "</blockquote>",newline
 );
 
 builder_say_excludes(phrase) := sconcat(
  "Your answer does not include the following phrase: <br/>",newline,
- "<blockquote>",newline,
+ "<blockquote class=\"builder_phrase\">",newline,
  phrase,newline,
  "</blockquote>",newline
 );
@@ -43,7 +43,7 @@ builder_needs_intro(s) := block(
   "This refers to ",t,", but at the point where this phrase appears, ",
   "we do not know what this means.  Before using the symbol ",t,", ",
   "you need to introduce it in some way, with a phrase like ",
-  "'Let ",t,"be an integer' or 'Consider an element \\(",s,"\\in X\\)' ",
+  "'Let ",t," be an integer' or 'Consider an element \\(",s,"\\in X\\)' ",
   "or 'There exists a permutation ",t," such that...'."
  ))
 );
