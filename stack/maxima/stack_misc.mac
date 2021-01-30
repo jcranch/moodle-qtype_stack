@@ -559,6 +559,18 @@ lined_array_tex(T) := block([n,s,i,r,k],
   return(s)
 )$
 
+eqns_tex(E) := block(
+ [s,t,n],
+ s : sconcat("\\[ \\begin{array}{rl}",newline),
+ n : length(E),
+ for i from 1 thru n do (
+  t : if i < n then " \\\\" else "",
+  s : sconcat(s,"  ",tex1(lhs(E[i]))," &= ",tex1(rhs(E[i])),t,newline)
+ ),
+ s : sconcat(s,"\\end{array} \\]",newline),
+ return(s)
+)$
+
 /* randpoly() returns a random polynomial.
    The first argument is the variable; if omitted, it defaults to x
    The second argument is the number of terms; if omitted, it defaults to 3
