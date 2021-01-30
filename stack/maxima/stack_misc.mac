@@ -591,15 +591,15 @@ randpoly([u]) := block([var,num_terms,coeffs,exps,exp_list],
  if not(integerp(num_terms) and num_terms > 0) then error("randpoly error: second argument must be a positive integer"),
  coeffs : if length(u) >= 3 then u[3] else [-5,-4,-3,-2,2,3,4,5],
  exps : if length(u) >= 4 then u[4] else [0,1,2,3,4,5,6,7,8,9],
- if setp(exps) then exps : sort(listify(exps)),
+ if setp(exps) then exps : sort(listify(exps)),
  if integerp(exps) then (
     if exps <= 0 then error("randpoly error: fourth argument must be a set or list or positive integer"),
     exps : makelist(i,i,0,exps-1)
  ),
  if not(listp(exps)) then error("randpoly error: fourth argument must be a set or list or positive integer"),
  if length(exps) < num_terms then (error("randpoly error: more terms than possible")),
- exp_list : rand_selection(exps,num_terms),
- return(sum(rand(coeffs) * var ^ exp_list[i],i,1,num_terms))
+ exp_list : rand_selection(exps,num_terms),
+ return(sum(rand(coeffs) * var ^ exp_list[i],i,1,num_terms))
 );
 
 show_config() := block([],return(["maxima_tempdir: ",maxima_tempdir,
