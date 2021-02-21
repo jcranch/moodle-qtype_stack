@@ -1293,6 +1293,11 @@ nounint([ex]):= if ev(is(length(ex)>1),simp) then apply(nounify(integrate), ex) 
 noundiff([ex]):= if ev(is(length(ex)>1),simp) then apply(nounify(diff), ex) else error("diff must have at least two arguments.")$
 nounlimit([ex]):=apply(nounify(limit), ex)$
 
+/* Define pdiff to act like diff.  In stacktex.lisp we ensure that 
+   pdiff will always be typeset with \partial
+*/
+pdiff([ex]) := apply(diff,ex)$
+
 /* ********************************** */
 /* Add in a +- operator               */
 /* ********************************** */
