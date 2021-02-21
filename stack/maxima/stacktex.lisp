@@ -206,6 +206,9 @@
                    (make-list ord :initial-element var))
                    vars ords)))))))
 
+;; We define pdiff to work like diff but to always typset with \partial
+(defprop %pdiff tex-pdiff tex)
+(defun tex-pdiff (x l r) (tex (tex-d x '"\\partial") l r lop rop))
 
 ;; Change the display of integrals to be consistent with derivatives.
 ;; Chris Sangwin, 8/6/2015.
