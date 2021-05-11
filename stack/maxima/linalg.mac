@@ -1,0 +1,341 @@
+/* Construct a column vector.  For example, col_vec(1,2,3,4) gives
+ * matrix([1],[2],[3],[4]).
+ */
+col_vec([v]) := apply(matrix,map(lambda([x],[x]),v));
+
+/* Convert u to a list, which will be regarded as a vector.  Here
+ * u could be list like [1,2,3], or a row vector like matrix([1,2,3]),
+ * or a column vector like matrix([1],[2],[3]).  All of these examples
+ * will be converted to [1,2,3].
+ */
+to_vector_list(u) := block([u0],
+ u0 : u,
+ if safe_op(u0) = "matrix" then (
+  if length(u0) = 1 then (
+   u0 : first(args(u0))
+  ) else if every(lambda([v],listp(v) and length(v) = 1),args(u0)) then (
+   u0 : map(first,args(u0))
+  )
+ ),
+ if listp(u0) then return(u0) else return(false) 
+);
+
+/* Convert A to a matrix.  Here A can be a nested list (like [[1,2],[3,4]])
+ * or a list of column vectors (like [matrix([1],[2]),matrix([3],[4])]) 
+ * or a Maxima matrix (like matrix([1,2],[3,4])).  All of these examples
+ * will be converted to matrix([1,2],[3,4]).
+ */ 
+to_matrix(A) := block([n,A0],
+ if safe_op(A) = "matrix" then (
+  return(A)
+ ),
+ if not(listp(A) and length(A) > 0) then (
+  return(false)
+ ),
+ A0 : map(to_vector_list,A),
+ if every(listp,A0) then (
+  n : length(A0[1]),
+  if every(lambda([r],length(r) = n),A0) then 
+   return (apply(matrix,A0))
+  else
+   return(false)
+ ) else (
+  return(false)
+ )
+);
+
+glue_cols(L) := block([A],
+ A : to_matrix(L),
+ if safe_op(A) = "matrix" then return(transpose(A)) else return(false)
+);
+
+/* Convert L to a list of lists, each of which will be regarded as a
+ * vector.  The argument L must already be a list, and the entries
+ * are converted to lists using to_vector_list()
+ */
+to_vector_listlist(L) := block([L0],
+ if not(listp(L)) then return(false),
+ L0 : map(to_vector_list,L),
+ if not(every(listp,L0)) then return(false),
+ return(L0)
+);
+
+/* Check that L is a list of vectors.  Anything that can be converted
+ * to a list by to_vector_list() is accepted as a vector.  If the
+ * argument n is an integer, then the list is required to have n
+ * elements.  If the argument d is an integer, then each vector is
+ * required to have length d.  These checks can be suppressed by
+ * taking n or d to be false.  However, even if d is false, the vectors
+ * in the list are required to have the same length.  The return value
+ * is a triple [ok,an,fb].  Here ok is true if all checks are passed,
+ * and false otherwise; an is s string which could be used as an
+ * answernote, and fb is a string which could be used as feedback.
+ */
+check_vector_listlist(L,n,d) := block([L0],
+ ok : true,
+ an : "",
+ fb : "",
+ L0 : to_vector_listlist(L),
+ if L0 = false then (
+  ok : false,
+  an : "malformed",
+  eg : [col_vec(1,2),col_vec(3,4),col_vec(5,6)],
+  fb : sconcat(
+   "Your answer is not a list of vectors.  To enter a list of vectors ",
+   "like ",tex0(eg)," (for example), you should type ",
+   "<code>[[1,2],[3,4],[5,6]]</code>."
+  ),
+  return([ok,an,fb])
+ ),
+ if n = 0 then (
+  s0 : sconcat(
+   "Your answer should be a list of length zero.  In other words, ",
+   "it should be the empty list, which is entered as <code>[]</code>."
+  )
+ ) else if n = 1 then (
+  eg : col_vec(10,11),
+  s0 : sconcat(
+   "Your answer should be a list of length one, just containing a single ",
+   "vector.  For example, to enter the list containing just the vector ",
+   tex0(eg),", you should type <code>[[10,11]]</code> (with an inner ",
+   "pair of square brackets to indicate the vector, and an outer pair ",
+   "to indicate the list)."
+  )
+ ) else (
+  s0 : sconcat(
+   "Your answer should be a list of ",tex0(n)," vectors."
+  )
+ ),
+ m : length(L0),
+ if integerp(n) and n > 0 and m = 0 then (
+  ok : false,
+  an : "empty list",
+  fb : sconcat(
+   s0," In fact, however, your answer is empty."
+  ),
+  return([ok,an,fb])
+ ),
+ if integerp(n) and not(n = 1) and m = 1 then (
+  ok : false,
+  an : "singleton",
+  fb : sconcat(
+   s0," In fact, however, your answer is a list containing a single vector."
+  ),
+  return([ok,an,fb])
+ ),
+ if integerp(n) and not(n = m) then (
+  ok : false,
+  an : "wrong length",
+  fb : sconcat(
+   s0," In fact, however, your answer contains ",tex0(m)," vectors."
+  ),
+  return([ok,an,fb])
+ ),
+ if m = 0 then return([true,"",""]),
+ if integerp(d) then (
+  wl : sublist(L0,lambda([v],not(length(v)=d))),
+  if length(wl) > 0 then (
+   ok : false,
+   an : "wrong dim",
+   fb : sconcat(
+    "Your answer should be a list of vectors, where each vector should ",
+    "have length ",tex0(d),".  However, your list contains ",
+    tex0(first(wl)),", which does not have length ",tex0(d),"."
+   ),
+   return([ok,an,fb])
+  )
+ ) else (
+  d0 : length(first(L0)),
+  wl : sublist(L0,lambda([v],not(length(v)=d0))),
+  if length(wl) > 0 then (
+   ok : false,
+   an : "mixed dim",
+   fb : sconcat(
+    "Your answer should be a list of vectors, all of the same length. ",
+    "However, the vectors in your list do not all have the same length. "
+   ),
+   return([ok,an,fb])
+  )
+ ),
+ nr : sublist(flatten(L0),lambda([t],not(real_numberp(t)))),
+ if length(nr) > 0 then (
+  ok : false,
+  an : "not real",
+  fb : sconcat(
+   "Your answer should be a list of vectors, and the entries in your ",
+   "vectors should just be numbers (not variables or expressions). ",
+   "However, you answer contains ",tex0(first(nr)),", which is not of this type. "
+  ),
+  return([ok,an,fb])  
+ ),
+ return([true,"",""])
+);
+
+/* Check various properties of the matrix A, in particular, whether it is
+ * in reduced row-echelon form.  If A cannot be interpreted as a matrix,
+ * then the return value is false.  Otherwise, the return value is a
+ * stackmap with keys as follows:
+ *
+ *  val      : the original matrix A, converted to a Maxima matrix
+ *  num_rows : the number of rows, i.e. the length of each column
+ *  num_cols : the number of columns, i.e. the length of each row
+ *  rank     : the rank
+ *  rref     : the reduced row-echelon form of A, as a Maxima matrix
+ *  is_rref  : true if A is in RREF, otherwise false
+ *  num_nonzero_entries : the number of nonzero entries
+ *  rref_answernote     : A note about why A is not in RREF
+ *  rref_feedback       : Feedback about why A is not in RREF
+ *
+ * The least two entries are set to the empty string if A is in fact in RREF.
+ */
+check_rref(A) := block(
+ [i,j,k,A0,A1,r,c,p,rz,zr,rk,an,fb,is_rref,nnz],
+ A0 : to_matrix(A),
+ if A0 = false then return(false),
+ r : length(A0),
+ c : length(A0[1]),
+ A1 : rref(A0),
+ p : [],
+ rz : makelist(0,i,1,c),
+ zr : 0,
+ rk : 0,
+ an : "",
+ fb : "",
+ is_rref : true,
+ for i from 1 thru r do (
+  if not(A1[i] = rz) then rk : rk + 1,
+  if A0[i] = rz then (
+   if zr = 0 then zr = i
+  ) else (
+   if is_rref = true and zr > 0 then (
+    is_rref : false,
+    an : "nonzero after zero",
+    fb : sconcat(
+     "Row \\(",zr,"\\) is zero and row \\(",i,"\\) is ",
+     "nonzero.  In an RREF matrix, any nonzero rows must ",
+     "come before all rows of zeros."
+    )
+   ),
+   j : 1,
+   while j < c and A0[i][j] = 0 do j : j + 1,
+   if is_rref = true and not(A0[i][j] = 1) then (
+    is_rref : false,
+    an : "pivot not one",
+    fb : sconcat(
+     "In an RREF matrix, the first nonzero entry in each nonzero row ",
+     "must be equal to one.  Here the first nonzero entry in row ",
+     "\\(",i,"\\) is \\(",A0[i][j]," \\neq 1\\) in column \\(",j,"\\), ",
+     "so this condition is not satisfied."
+    )
+   ),
+   if is_rref = true and length(p) > 0 and j <= last(p)[2] then (
+    is_rref : false,
+    an : "pivot out of order",
+    fb : sconcat(
+     "In an RREF matrix, the pivot in any row must be strictly ",
+     "further to the right than any pivots in earlier rows.  Here ",
+     "row \\(",last(p)[1],"\\) has a pivot in column \\(",last(p)[2],"\\) ",
+     "but row \\(",i,"\\) has a pivot in column \\(",j,"\\), so ",
+     "this pivot condition is not satisfied. "
+    )
+   ),
+   if is_rref = true then (
+    for k from 1 thru i-1 do (
+     if not(A0[k][j] = 0) then (
+      is_rref : false,
+      an : "nonzero above pivot",
+      fb : sconcat(
+       "In an RREF matrix, all entries above a pivot must be zero. ",
+       "Here row \\(",i,"\\) has a pivot in column \\(",j,"\\), and ",
+       "above that in row \\(",k,"\\) we have an entry ",
+       "\\(",tex1(A0[k][j])," \\neq 0\\), so this condition is not ",
+       "satisfied."
+      ),
+      return()
+     )
+    )
+   ),
+   p : endcons([i,j],p)
+  )
+ ),
+ nnz : 0,
+ for i from 1 thru r do (
+  for j from 1 thru c do (
+   if not(A0[i][j] = 0) then nnz : nnz + 1
+  )
+ ),
+ return([
+  "stack_map",
+  ["val",A0],
+  ["num_rows",r],
+  ["num_cols",c],
+  ["rank",rk],
+  ["num_nonzero_entries",nnz],
+  ["rref",A1],
+  ["is_rref",is_rref],
+  ["rref_answernote",an],
+  ["rref_feedback",fb],
+  ["full_pivots",p],
+  ["pivots",map(last,p)]
+ ])
+);
+
+is_dependent(L) := 
+ ev(length(nullspace(glue_cols(L))) > 0,pred);
+
+is_independent(L) := not(is_dependent(L));
+
+linear_relation(L) := block([N,c,c0],
+ N : to_vector_listlist(args(nullspace(glue_cols(L)))),
+ if length(N) = 0 then return(false),
+ c(u) := apply("+",map(lambda([x],if x = 0 then 0 else 1),u)),
+ c0 : apply(min,map(c,N)),
+ N : sublist(N,lambda([u],ev(c(u) = c0,pred))),
+ return (first(N))
+);
+
+is_spanning(L) :=
+ ev(length(nullspace(to_matrix(L))) = 0,pred);
+
+linear_corelation(L) := block([N,c,c0],
+ N : to_vector_listlist(args(nullspace(to_matrix(L)))),
+ if length(N) = 0 then return(false),
+ c(u) := apply("+",map(lambda([x],if x = 0 then 0 else 1),u)),
+ c0 : apply(min,map(c,N)),
+ N : sublist(N,lambda([u],ev(c(u) = c0,pred))),
+ return (first(N))
+);
+
+/* If v <> 0 and u = c v then vector_ratio(u,v) returns c
+ * In all other cases, vector_ratio(u,v) returns false.
+ */
+vector_ratio(u,v) := block([u0,v0],
+ u0 : to_vector_list(u),
+ v0 : to_vector_list(v),
+ if u0 = false or v0 = false then return(false),
+ if not(length(u0) = length(v0)) then return(false),
+ n : length(v0),
+ z : makelist(0,i,1,n),
+ i : 1,
+ while v0[i] = 0 and i <= n do (i : i + 1),
+ if i > n then return(false),
+ c : u0[i]/v0[i],
+ if expand(u0 - c * v0) = z then (
+  return(c)
+ ) else (
+  return(false)
+ )
+);
+
+/* power_bases(u) returns the set of all expressions b such that
+ * u has a subexpression of the form b ^ m for some m.
+ */ 
+power_bases(u) := block([],
+ if mapatom(u) then (
+  return({})
+ ) else if safe_op(u) = "^" then (
+  return({first(args(u))})
+ ) else (
+  return(flatten(map(power_bases,setify(args(u)))))
+ )
+);
