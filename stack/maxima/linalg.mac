@@ -62,16 +62,16 @@ to_vector_listlist(L) := block([L0],
 
 /* Check that L is a list of vectors.  Anything that can be converted
  * to a list by to_vector_list() is accepted as a vector.  If the
- * argument n is an integer, then the list is required to have n
- * elements.  If the argument d is an integer, then each vector is
- * required to have length d.  These checks can be suppressed by
- * taking n or d to be false.  However, even if d is false, the vectors
+ * argument d is an integer, then each vector is required to have
+ * length d.  If the argument n is an integer, then the list is required
+ * to have n elements.  These checks can be suppressed by
+ * taking d or n to be false.  However, even if d is false, the vectors
  * in the list are required to have the same length.  The return value
  * is a triple [ok,an,fb].  Here ok is true if all checks are passed,
  * and false otherwise; an is s string which could be used as an
  * answernote, and fb is a string which could be used as feedback.
  */
-check_vector_listlist(L,n,d) := block([L0],
+check_vector_listlist(L,d,n) := block([L0],
  ok : true,
  an : "",
  fb : "",
@@ -305,6 +305,64 @@ linear_corelation(L) := block([N,c,c0],
  N : sublist(N,lambda([u],ev(c(u) = c0,pred))),
  return (first(N))
 );
+
+/* The following functions operate on subspaces of R^n.
+ * Input can be accepted in a variety of forms, but output
+ * is always a list of lists, to be interpreted as a list of
+ * vectors that gives the canonical basis for a subspace.
+ * Here "canonical" means that if we take the vectors to be
+ * the rows of a matrix, then that matrix will be in
+ * reduced row-echelon form.
+ */
+ 
+row_annihilator(A0) := block([A,N,B],
+ A : to_matrix(A0),
+ N : args(nullspace(A)),
+ if N = [] then return([]),
+ B : args(rref(apply(matrix,map(to_vector_list,N)))),
+ return(B)
+);
+
+row_span(A0) := block([A1,z],
+ if A0 = [] then return([]),
+ A1 : args(rref(to_matrix(A0))),
+ if A1 = [] then return([]),
+ z : 0 * A1[1],
+ A1 : sublist(A1,lambda([u],not(u = z))),
+ return(A1)
+);
+
+subspace_sum([UU]) := row_span(apply(append,map(row_span,UU)));
+
+subspace_intersection([UU]) := block([UU0,AA0],
+ UU0 : sublist(map(row_span,UU),lambda([U],not(U = []))),
+ AA0 : map(row_annihilator,UU0),
+ return(row_annihilator(apply(subspace_sum,AA0)))
+);
+
+full_subspace(n) := args(ident(n));
+
+zero_subspace() := [];
+
+subspace_orthogonalp(U0,V0) := block([U,V,E],
+ U : to_matrix(U0),
+ V : to_matrix(V0),
+ E : flatten(args(U . transpose(V))),
+ return(every(lambda([x],ev(expand(x) = 0,pred)),E))
+);
+
+subspace_containedp(U0,V0) := subspace_orthogonalp(U0,row_annihilator(V0));
+
+subspace_memp(u0,V0) := subspace_orthogonalp([u0],row_annihilator(V0));
+
+subspace_dim(U) := length(U);
+
+matrix_image(A0) := block([A],
+ A : to_matrix(A0),
+ return(row_span(transpose(A)))
+);
+
+matrix_kernel(A0) := row_annihilator(A0); 
 
 /* If v <> 0 and u = c v then vector_ratio(u,v) returns c
  * In all other cases, vector_ratio(u,v) returns false.
