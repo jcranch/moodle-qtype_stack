@@ -1,0 +1,612 @@
+tex0(u) := sconcat("\\(",tex1(u),"\\)");
+
+/* These are used for generating labels for multiple choice questions.
+ * There is probably a better way.  We need both the string versions
+ * and the symbol versions, because only sconcat() (and not concat())
+ * is allowed in CAS text.
+ */
+
+alphabet: ['A,'B,'C,'D,'E,'F,'G,'H,'I,'J,'K,'L,'M,'N,'O,'P,'Q,'R,'S,'T,'U,'V,'W,'X,'Y,'Z];
+alphabet_strings: ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"];
+
+order_alpha() := block([],
+ unorder(),
+ ordergreat(A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z,
+                            a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z)
+)$
+
+/* A predicate for points in R^2 (expressed as lists)
+ */
+
+
+coords2p(u) := block([],
+  if (not(listp(u))) then (return(false)),
+  if (length(u) # 2)  then (return(false)),
+  if (not(real_numberp(u[1]) and real_numberp(u[2]))) then (return(false)),
+  return(true)
+)$
+
+/* A predicate for points in R^3 (expressed as lists)
+ */
+
+coords3p(u) := block([],
+  if (not(listp(u))) then (return(false)),
+  if (length(u) # 3)  then (return(false)),
+  if (not(real_numberp(u[1]) and real_numberp(u[2])  and real_numberp(u[3]))) then (return(false)),
+  return(true)
+)$
+
+/* If n = p^2 * q where q is square-free then                         */
+/* square_part(n) = p and square_free_part(n) = q.                    */
+
+square_part(n) := ev(apply("*",map(lambda([u],u[1] ^ floor(u[2]/2)),ifactors(n))),simp)$
+
+square_free_part(n) := ev(n / square_part(n)^2,simp)$
+
+
+/* If x = (a * sqrt(b) + c)/d with a,b,c,d integers then surdform(x)  */
+/* returns [a,b,c,d].  This works even if x needs some simplification */
+/* to be put in the stated form.                                      */
+
+surdform(x) := block(
+ [simp,a0],
+ simp: true,
+ a0: ev(ratdisrep(rat(x)),algebraic),
+ if "/" = safe_op(a0) then (a1: num(a0), a2: denom(a0)) else (a1: a0, a2: 1),
+ if "+" = safe_op(a1) then (a3: args(a1)) else (a3: [0,a1]),
+ a4: apply("+",sublist(a3,integerp)),
+ a5: a1 - a4,
+ if "*" = safe_op(a5) then (a6: args(a5)) else (a6: [1,a5]),
+ a7: apply("*",sublist(a6,integerp)),
+ a8: (a5/a7)^2,
+ return([a7,a8,a4,a2])
+)$
+
+/**
+ * Nicely typeset prime factorisation
+ */
+ 
+ifactors_tex(n) := block([f],
+ f : ifactors(n),
+ f : map(lambda([u],if (u[2] = 1) then string(u[1]) else sconcat(u[1],"^{",u[2],"}")),f),
+ f : simplode(f,"\\cdot "),
+ return(f)
+);
+
+/* Converts \pi to "\pi\approx 3.14159265" (for example), but omits
+ * the decimal approximation for rationals of small denominator.
+ */
+with_approx(x) := if (integerp(ev(12 * x,simp))) then tex1(x) else concat(tex1(x)," \\approx ",tex1(float(ev(x,simp,numer))))$
+
+
+/* Returns analysis of U (expected to be a set of reals) when offered as
+ * the set of roots of q (expected to be quadratic in x, with numerical
+ * coefficients).  The return value is like [score, answernote, feedback]
+ */
+check_quadratic_roots(U,q) := block([simp,a,b,c,d,D,vars,u,U0,U1,qu,msg],
+   simp: true,
+   a: coeff(q,x,2),
+   b: coeff(q,x,1),
+   c: coeff(q,x,0),
+   D: b^2 - 4*a*c,
+   if not(setp(U)) then (
+    return([0,"not a set","Your answer should be a set, consisting of some numbers enclosed in curly brackets."])
+  ),
+  vars: listofvars(U),
+  if (length(vars) > 0) then (
+   return([0,"has vars",concat("Your answer should just be a set of numbers, but in fact it depends on the following variables: ",string(vars))]) 
+  ),
+  if (length(subset(U,real_numberp)) < length(U)) then (
+    return([0,"not numbers","Your answer should just be a set of numbers"])
+  ),
+  if (length(U) = 0) then (
+    if (D < 0) then (
+     return([0,"no roots a","Your answer is the empty set, so you are claiming that there are no roots.  It is true that there are no <em>real</em> roots, but there are complex roots, and you should find them"])
+    ) else (
+     return([0,"no roots b","Your answer is the empty set, so you are claiming that there are no roots; but that is not correct."])
+    )
+  ),
+  U0: subset(U,lambda([u],is(ratsimp(subst(x=u,q))=0))),
+  U1: setdifference(U,U0),
+  if (length(U1) > 0) then (
+    u: listify(U1)[1],
+    qu: ratsimp(ev(subst(x=u,q),simp)),
+    msg: concat("You are claiming that \\(",tex1(u),"\\) is a root.  However, if we substitute \\(x=",tex1(u),
+                           "\\) in \\(",tex1(q),"\\), we get \\(",with_approx(qu),"\\), which is nonzero."),
+    return([0,"non-root",msg])
+  ),
+  if (D # 0 and length(U) = 1) then (
+    return([0,"only one root","You have only found one of the roots, but in fact there are two."])
+  ),
+  return([1,"correct",""])
+)$
+
+/* The idea here is that we have a trigonometric question whose
+ * answer is the coset (base + Z . period) in R.  The student
+ * has entered theta, which is expected to be base + k * period,
+ * where k is a free variable.  The return value of the function
+ * below is a table whose entries contain information about
+ * relevant properties of the student's answer.
+ */
+check_trig_coset(theta,base,period) := block(
+ [simp,E,theta_exp,vars,var,ans_base,ans_period],
+ simp: true,
+ E : ["stack_map",["err",""],["theta",theta],["base",base],["period",period],
+                  ["is_correct",false],["ans_base",0],["ans_period",0],
+                  ["base_ok",false],["period_ok",false],["period_pi_free",false],
+                  ["period_pi_integral",false],["period_is_multiple",false],["period_is_divisor",false]],
+ theta_exp: ev(expand(subst([pi=%pi,Pi=%pi,PI=%pi],theta)),simp),
+ E: stackmap_set(E,"theta_exp",theta_exp),
+ vars: listofvars(theta_exp),
+ stackmap_set(E,"vars",vars),
+ if (length(vars) = 0) then (
+  var: null,
+  ans_base: theta_exp,
+  ans_period: 0,
+  E: stackmap_set(E,"var",var),
+  E: stackmap_set(E,"ans_base",theta_exp),
+  E: stackmap_set(E,"ans_period",0)
+ ) elseif (length(vars) > 1) then (
+  E: stackmap_set(E,"err", "too many variables"),
+  return(E)
+ ) else (
+  var: vars[1],
+  ans_base: ev(coeff(theta_exp,var,0),simp),
+  ans_period: ev(coeff(theta_exp,var,1),simp),
+  E: stackmap_set(E,"var", var),
+  E: stackmap_set(E,"ans_base",ans_base),
+  E: stackmap_set(E,"ans_period",ans_period),
+
+  if (not(ratsimp(theta_exp - ans_base - ans_period * var) = 0)) then (
+   E: stackmap_set(E,"err","not affine"),
+   return(E)
+  )
+ ),
+ if (not(real_numberp(ans_base))) then (
+  E: stackmap_set(E,err,"base not constant"),
+  return(E)
+ ),
+ if (not(real_numberp(ans_period))) then (
+  E: stackmap_set(E,err,"period not constant"),
+  return(ret)
+ ),
+
+ base_ok: integerp(ev((ans_base - base)/period,simp)),
+ period_ok: is(ratsimp(ans_period - period) = 0),
+ is_correct: ev(base_ok and period_ok,pred),
+ period_pi_free: freeof(%pi,ans_period),
+ period_pi_integral: integerp(ev(ans_period/%pi,simp)),
+ period_is_multiple: integerp(ev(ans_period/period,simp)),
+ if (ans_period = 0) then (
+  period_is_divisor: false
+ ) else (
+  period_is_divisor: integerp(ev(period/ans_period,simp))
+ ),
+
+ E: stackmap_set(E,"base_ok",base_ok),
+ E: stackmap_set(E,"period_ok",period_ok),
+ E: stackmap_set(E,"is_correct",is_correct),
+ E: stackmap_set(E,"period_pi_free",period_pi_free),
+ E: stackmap_set(E,"period_pi_integral",period_pi_integral),
+ E: stackmap_set(E,"period_is_multiple",period_is_multiple),
+ E: stackmap_set(E,"period_is_divisor",period_is_divisor),
+
+ return(E)
+)$
+
+
+complex_numberp(z) := real_numberp(realpart(z)) and real_numberp(imagpart(z));
+
+complex_tex(z) := block([x,y,tx,ty,tyi],
+ x : realpart(z),
+ y : imagpart(z),
+ tx : tex1(x),
+ ty : tex1(y),
+ if (y = 1) then (
+  tyi : "i"
+ ) elseif (y = -1) then (
+  tyi : "-i"
+ ) elseif (safe_op(y) = "+") then (
+  tyi : sconcat("\\left(",ty,"\\right)i")
+ ) else (
+  tyi : sconcat(ty, " i")
+ ),
+ if (x = 0) then (
+  return(tyi)
+ ) else (
+  if (y = 0) then (
+   return  (tx)
+  ) else (
+   if (slength(tyi) > 0 and substring(tyi,1,2) = "-") then (
+    return(sconcat(tx,tyi))
+   ) else (
+    return(sconcat(tx," + ",tyi))
+   )
+  )
+ )
+)$
+
+cimplex_tex0(u) := sconcat("\\(",complex_tex(u),"\\)");
+
+ijk_tex(u) := block([v,ss,o,s0,s],
+ v : ["\\mathbf{i}","\\mathbf{j}","\\mathbf{k}"],
+ ss : "",
+ for m from 1 thru min(length(u),3) do (
+    s0 : tex1(u[m]),
+    o : safe_op(u[m]),
+    if (s0 = "1") then (
+      s : v[m]
+    ) elseif (s0 = "-1") then (
+      s : sconcat("-",v[m])
+    ) elseif (u[m] = 0 or s0 = "") then (
+      s : ""
+    ) elseif (o = "+") then (
+      s : sconcat("\\left(",s0,"\\right)",v[m])
+    ) else (
+      s : sconcat(s0,v[m])
+    ),
+    if (slength(s) > 0) then (
+     if (not(substring(s,1,2) = "-") and slength(ss) > 0) then ( 
+      ss : sconcat(ss,"+",s)
+     ) else (
+      ss : sconcat(ss,s)
+     )
+   )
+ ),
+ return(ss)
+)$
+
+ijk_tex0(u) := sconcat("\\(",ijk_tex(u),"\\)");
+
+quadrant(xy) := block([x,y],
+ if (not(listp(xy) and length(xy) = 2)) then (return(false)),
+ [x,y] : xy,
+ if (not(real_numberp(x) and real_numberp(y))) then (return(false)),
+ if (is(x = 0)) then (
+  if (is(y = 0)) then (
+   return("0")
+  ) elseif (is(y > 0)) then (
+   return("y+")
+  ) else (
+   return("y-")
+  )
+ ) elseif (is(x > 0)) then (
+  if (is(y = 0)) then (
+   return("x+")   
+  ) elseif (is(y > 0)) then (
+   return("1")
+  ) else (
+   return("4")
+  )
+ ) else (
+  if (is(y = 0)) then (
+   return("x-")
+  ) elseif (is(y > 0)) then (
+   return("2")
+  ) else (
+   return("3")
+  )
+ )
+)$
+
+complex_quadrant(z) := quadrant([realpart(z),imagpart(z)])$
+
+sum_terms(u) := block([],
+ if (u = 0) then (
+  return([])
+ ) elseif (safe_op(u) = "+") then (
+  return(args(u))
+ ) else (
+  return([u])
+ )
+)$
+
+
+prod_terms(u) := block([],
+ if (u = 1) then (
+  return([])
+ ) elseif (safe_op(u) = "*") then (
+  return(args(u))
+ ) else (
+  return([u])
+ )
+)$
+
+/* Returns a list [a,b] such that u = a * b and a is a real constant
+ * and b has no obvious real constant factors.
+ */
+
+num_factor(u) := block([o,a,s,v],
+ o: safe_op(u),
+ if (o = "*" or o = "/" or o = "-") then (
+  a : args(u)
+ ) else (
+  o: "*", a : [u]
+ ),
+ if (o = "*") then (
+  a: map(lambda([x],if (real_numberp(x)) then ([x,1]) else ([1,x])),a),
+  return([apply("*",map(first,a)),apply("*",map(second,a))])
+ ) elseif (o = "/") then (
+  return(num_factor(a[1])/num_factor(a[2]))
+ ) elseif (o = "-") then (
+  v : num_factor(args(u)[1]),
+  return([-v[1],v[2]])
+ ) else (
+  return([1,u])
+ )
+)$
+
+complex_num_factor(u) := block([o,a,v],
+ o: safe_op(u),
+ if (o = "*" or o = "/" or o = "-") then (
+  a : args(u)
+ ) else (
+  o: "*", a : [u]
+ ),
+ if (o = "*") then (
+  a: map(lambda([x],if (complex_numberp(x)) then ([x,1]) else ([1,x])),a),
+  return([apply("*",map(first,a)),apply("*",map(second,a))])
+ ) elseif (o = "/") then (
+  v: complex_num_factor(a[1])/complex_num_factor(a[2]),
+  v: [rectform(v[1]),v[2]],
+  return(v)
+ ) elseif (o = "-") then (
+  v : complex_num_factor(a[1]),
+  return([-v[1],v[2]])
+ ) else (
+   return([1,u])
+ )
+)$
+
+/* If u has the form a ^ n then return [a,n], otherwise return [u,1].
+ */
+
+
+pow_split(u) := block([o,a,n],
+ o: safe_op(u),
+ if (u = 1) then (
+  return([1,0])
+ ) elseif (o = "^") then (
+  return(args(u))
+ ) elseif(o = "/" and args(u)[1] = 1) then (
+  [a,n]: pow_split(args(u)[2]),
+  return([a,-n])
+ ) else (
+  return([u,1])
+ )
+)$
+
+/* If u has the form c * (b ^ n) then return [c,b,n]. In other cases,
+ * return the obvious triple [c,b,n] (possibly with c = 1 and/or n = 0)
+ * such that u = c * (b ^ n).
+ */
+
+monomial_split(u) := block([],
+ [c,a]: num_factor(u),
+ [b,n]: pow_split(a),
+ return([c,b,n])
+)$
+
+complex_monomial_split(u) := block([],
+ [c,a]: complex_num_factor(u),
+ [b,n]: pow_split(a),
+ return([c,b,n])
+)$
+
+stackmap_display(m) := block(for x in rest(m) do (print(x[1] = x[2])))$
+
+complex_factor_poly(p,var) :=  block([p0,n,r,q,a,dp,i],
+ p0 : expand(p),
+ n : hipow(p0,var),
+ r : map(rhs,solve(p=0,var)),
+ q : coeff(p0,var,n),
+ for a in r do (
+  dp : diff(p0,var),
+  i : 1,
+  while(ev(expand(subst(var = a,dp)),simp) = 0) do (
+   i : i + 1, dp : diff(dp,var)
+  ) ,
+  q : q * (var - a) ^ i
+ ),
+ return(q)
+)$
+
+
+complex_factor(p,var) := block([pf,n,d],
+ pf : factor(p),
+ n : num(pf),
+ d : denom(pf),
+ n : complex_factor_poly(n,var),
+ d : complex_factor_poly(d,var),
+ return(factor(n/d))
+)$
+
+complex_compare(a,b) := block([a0,b0],
+ if (not(complex_numberp(a) and complex_numberp(b))) then (
+  return(true)
+ ),
+ a0 : ev(a,numer),
+ b0 : ev(b,numer),
+ if (imagpart(a0) = 0) then (
+  if (imagpart(b0) = 0) then (
+   if (abs(a0) < abs(b0)) then (
+    return(true)
+   ) elseif (abs(a0) > abs(b0)) then (
+    return(false)
+   ) else (
+    return(is(a0 >= b0))
+   )
+  ) else (
+   return(true)
+  )
+ ) else (
+  if (imagpart(b0) = 0) then (
+   return(false)
+  ) elseif(abs(realpart(a0)) < abs(realpart(b0))) then (
+   return(true)
+  ) elseif(abs(realpart(a0)) > abs(realpart(b0))) then (
+   return(false)
+  ) elseif (not(realpart(a0) = realpart(b0))) then (
+   return(is(realpart(a0) >= realpart(b0)))
+  ) elseif(abs(imagpart(a0)) < abs(imagpart(b0))) then (
+   return(true)
+  ) elseif(abs(imagpart(a0)) > abs(imagpart(b0))) then (
+   return(false)
+  ) elseif (not(imagpart(a0) = imagpart(b0))) then (
+   return(is(imagpart(a0) >= imagpart(b0)))
+  )
+ )
+)$
+
+basic_functions : [
+ "sin","cos","tan","sec","cosec","csc","cot",
+ "sinh","cosh","tanh","sech","cosech","csch","coth",
+ "asin","acos","atan","asec","acosec","acsc","acot",
+ "asinh","acosh","atanh","asech","acosech","acsch","acoth",
+ "arcsin","arccos","arctan","arcsec","arccosec","arccsc","arccot",
+ "arcsinh","arccosh","arctanh","arcsech","arccosech","arccsch","arccoth",
+ "exp","log","ln"
+]$
+
+greek_letters : [
+"alpha",
+"beta",
+"gamma",
+"delta",
+"epsilon",
+"zeta",
+"eta",
+"theta",
+"iota",
+"kappa",
+"lambda",
+"mu",
+"nu",
+"xi",
+"omicron",
+"pi",
+"rho",
+"sigma",
+"tau",
+"upsilon",
+"phi",
+"chi",
+"psi",
+"omega"
+]$
+
+is_letter(c) := block([n : cint(c)],return(ev((65 <= n and n <= 90) or (97 <= n and n <= 122),pred)))$
+is_digit(c)  := block([n : cint(c)],return(ev((48 <= n and n <= 57),pred)))$
+is_white(c)  := block([n : cint(c)],return(ev((n = 9 or n = 10 or n = 13 or n = 32),pred)))$
+
+is_ordinary_name(s) := block(
+ [b,l,i,t],
+ b : charlist(s),
+ l : length(b),
+ i : 1,
+ while (i <= l and is_letter(b[i])) do ( i : i + 1 ),
+ t : substring(s,1,i),
+ if (not(slength(t) = 1 or member(t,greek_letters))) then (return(false)),
+ while (i <= l) do (
+  if (not(is_digit(b[i]))) then ( return(false) ),
+  i : i + 1
+ ),
+
+ return(true)
+)$
+
+all_names(e) := block(
+ [is_name,s,a],
+ is_name(s) := every(alphanumericp,charlist(s)) and not(every(digitcharp,charlist(s))),
+ if (atom(e)) then (
+  s : string(e),
+  if (is_name(s)) then (return({s})) else (return({}))
+ ) else (
+  a : cons(all_names(op(e)),map(all_names,args(e))),
+  return(apply(union,a))
+ )
+)$
+
+check_vars(sa,ta) := block(
+ [ignored,sv,tv,t],
+
+ ignored : {"e","%e","pi","%pi","i","%i"},
+ 
+ sv : subset(setdifference(all_names(sa),ignored),is_ordinary_name),
+ tv : subset(setdifference(all_names(ta),ignored),is_ordinary_name),
+
+ t : ["stack_map",
+      ["extra",sort(listify(setdifference(sv,tv)))],
+      ["missing",sort(listify(setdifference(tv,sv)))],
+      ["correct",sort(listify(intersection(tv,sv)))]],
+
+ return(t)
+)$
+
+lined_array_tex(T) := block([n,s,i,r,k],
+  n : apply(max,map(length,T)),
+  s : "\\begin{array}{|",
+  for i from 1 thru n do s : sconcat(s,"c|"),
+  s : sconcat(s,"}\\hline",newline),
+  for r in T do (
+    k : length(r),
+    for i from 1 thru k do (
+     if i < k then (
+      s : sconcat(s,r[i]," & ")
+    ) else (
+      s : sconcat(s,r[i]," \\\\ \\hline ",newline)
+    )
+   )
+  ),
+  s : sconcat(s,"\\end{array}"),
+  return(s)
+)$
+
+eqns_tex(E) := block(
+ [s,t,n],
+ s : sconcat("\\[ \\begin{array}{rl}",newline),
+ n : length(E),
+ for i from 1 thru n do (
+  t : if i < n then " \\\\" else "",
+  s : sconcat(s,"  ",tex1(lhs(E[i]))," &= ",tex1(rhs(E[i])),t,newline)
+ ),
+ s : sconcat(s,"\\end{array} \\]",newline),
+ return(s)
+)$
+
+/* randpoly() returns a random polynomial.
+   The first argument is the variable; if omitted, it defaults to x
+   The second argument is the number of terms; if omitted, it defaults to 3
+   The third argument controls the coefficients.  If it is a set or list s, 
+     then the coefficients are randomly chosen from s.  If it is a positive 
+     integer n, then the coefficients are randomly chosen from {0,...,n-1}.
+     Note that if 0 is allowed as a coefficient, then the actual number of
+     terms may be less than specified by the second argument.  If no third
+     argument is given, then coefficients are randomly chosen from the list
+     [-5,-4,-3,-2,2,3,4,5].
+   The fourth argument controls the exponents.  It can again be a set, list
+     or positive integer, and it defaults to [0,...,9].  It must be at 
+     least as large as the specified number of terms.
+*/
+randpoly([u]) := block([var,num_terms,coeffs,exps,exp_list],
+ var : if length(u) >= 1 then u[1] else x,
+ num_terms : if length(u) >= 2 then u[2] else 3,
+ if not(integerp(num_terms) and num_terms > 0) then error("randpoly error: second argument must be a positive integer"),
+ coeffs : if length(u) >= 3 then u[3] else [-5,-4,-3,-2,2,3,4,5],
+ exps : if length(u) >= 4 then u[4] else [0,1,2,3,4,5,6,7,8,9],
+ if setp(exps) then exps : sort(listify(exps)),
+ if integerp(exps) then (
+    if exps <= 0 then error("randpoly error: fourth argument must be a set or list or positive integer"),
+    exps : makelist(i,i,0,exps-1)
+ ),
+ if not(listp(exps)) then error("randpoly error: fourth argument must be a set or list or positive integer"),
+ if length(exps) < num_terms then (error("randpoly error: more terms than possible")),
+ exp_list : rand_selection(exps,num_terms),
+ return(sum(rand(coeffs) * var ^ exp_list[i],i,1,num_terms))
+);
+
+show_config() := block([],return(["maxima_tempdir: ",maxima_tempdir,
+                                        "IMAGE_DIR: ",IMAGE_DIR,
+                                        "URL_BASE: ",URL_BASE]))$
+
+
