@@ -46,14 +46,14 @@ mrl_setup(true_opts,false_opts,num_opts) := block([opts,note],
  *
  * We may then want to select a random subset of options or just
  * shuffle all options into a random order.  Both tasks are achieved using
- * the shuffle() function.
+ * the mcq_shuffle() function.
  *
  * After that, we can use mcq_add_labels() to convert to labelled form.
  * Note that the student's answer will then be a symbol like A,B or C,
  * and the mapping from those symbols to the actual answers may depend
  * on how the question was randomised.  A typical pattern of use would
  * be to set up an option set opts0 and then do
- * opts1 : shuffle(opts0,4); opts2 : mcq_add_labels(opts1);
+ * opts1 : mcq_shuffle(opts0,4); opts2 : mcq_add_labels(opts1);
  * Then in the marking code we can do opt : unlabel(ans,opts1) to
  * set opt equal to the entry in opts0 corresponding to the student's
  * answer.
@@ -111,7 +111,7 @@ mrq_add_bool(opts,right_opts) := block([o],
  * opts1 will be the corresponding list of entries in opts.
  */
  
-mcq_shuffle(opts,[k_]) := block([n,p,v,i,k],
+mcq_shuffle(opts,[k_]) := block([n,p,v,i,k,add_answernote],
  if (not(listp(opts))) then (return(false)),
  n : length(opts),
  k : n,
@@ -119,7 +119,15 @@ mcq_shuffle(opts,[k_]) := block([n,p,v,i,k],
  if not(integerp(k) and k > 0 and k <= n) then (k : n),
  p : random_permutation(makelist(i,i,1,n)),
  p : makelist(p[i],i,1,k),
- opts1 : makelist(opts[p[i]],i,1,k),
+ add_answernote(i,o) := block(
+  if length(o) = 4 then (
+   return(endcons(sconcat("incorrect ",i),o))
+  ) else (
+   return(o)
+  )
+ ),
+ opts1 : makelist(add_answernote(i,opts[i]),i,1,length(opts)),
+ opts1 : makelist(opts1[p[i]],i,1,k),
  return([p,opts1])
 )$
 
@@ -166,10 +174,11 @@ mcq_unlabel(key,opts) := opts[cint(sconcat("",key)) - 64]$
 /* This should be removed when we have refactored questions that use it */
 unlabel : mcq_unlabel$
 
-mr_feedback(ans,opts,[with_display_]) := block(
+mr_feedback(ans,opts,[extra_]) := block(
  [with_display : false,
+  perm : null,
   keys : [], num_opts : 0,
-  first_mismatch : false,
+  first_mismatch : false, first_mismatch_index : false,
   ticked   : [],  ticked_keys   : [], num_ticked   : 0,
   unticked : [],  unticked_keys : [], num_unticked : 0,
   missing  : [],  missing_keys  : [], num_missing  : 0,
@@ -177,7 +186,7 @@ mr_feedback(ans,opts,[with_display_]) := block(
   is_correct : false, binary_score : 0, count_score : 0,
   count_note : "", crude_count_feedback : "", count_feedback : "",
   table_note : "", table_feedback : "", full_table_feedback : "",
-  i,opt,opt_ok,opt_string,M
+  i,opt,opt_ok,opt_string,M,codes,code
  ],
 
  opt_ok(u) :=
@@ -194,22 +203,41 @@ mr_feedback(ans,opts,[with_display_]) := block(
  ),
  
  simp : true,
- with_display : ev(length(with_display_) > 0 and with_display_[1] = true,pred),
- 
+ with_display : ev(length(extra_) > 0 and extra_[1] = true,pred),
+ if  (length(extra_) > 1 and listp(extra_[2])) then perm : extra_[2],
+ if not(listp(perm)) then (
+  perm : makelist(i,i,1,length(opts))
+ ),
+ codes : makelist("-",i,1,apply(max,perm)),
+
  num_opts : length(opts),
  for i from 1 thru num_opts do (
   opt : opts[i],
   if member(opt[1],ans) then (
    ticked : endcons(opt,ticked),
-   if (not(opt[2])) then (
+   if opt[2] then (
+    codes[perm[i]] : "Y"
+   ) else (
+    codes[perm[i]] : "y",
     extra : endcons(opt,extra),
-    if (first_mismatch = false) then first_mismatch : opt
+    if (first_mismatch = false) then (
+     first_mismatch : opt,
+     first_mismatch_index : perm[i],
+     codes[perm[i]] : "?"
+    )
    )
   ) else (
    unticked : endcons(opt,unticked),
    if (opt[2]) then (
+    codes[perm[i]] : "n",
     missing : endcons(opt,missing),
-    if (first_mismatch = false) then first_mismatch : opt
+    if (first_mismatch = false) then (
+     first_mismatch : opt,
+     first_mismatch_index : perm[i],
+     codes[perm[i]] : "!"
+    )
+   ) else (
+    codes[perm[i]] : "N"
    )
   )
  ),
@@ -222,6 +250,7 @@ mr_feedback(ans,opts,[with_display_]) := block(
  num_unticked  : length(unticked),
  num_extra     : length(extra),
  num_missing   : length(missing),
+ code          : apply(sconcat,codes),
 
  is_correct : ev(num_extra = 0 and num_missing = 0,pred),
  binary_score : if is_correct then 1 else 0,
@@ -289,7 +318,7 @@ mr_feedback(ans,opts,[with_display_]) := block(
  ),
 
  if (not(first_mismatch = false)) then (
-  table_note : "incorrect",
+  table_note : sconcat("incorrect ",first_mismatch_index),
   if (with_display) then (
    opt_string : first_mismatch[3],
    if (length(first_mismatch) >= 4) then table_feedback : first_mismatch[4],
@@ -352,7 +381,9 @@ mr_feedback(ans,opts,[with_display_]) := block(
       ["count_feedback",count_feedback],
       ["table_note",table_note],
       ["table_feedback",table_feedback],
-      ["full_table_feedback",full_table_feedback]
+      ["full_table_feedback",full_table_feedback],
+      ["codes",codes],
+      ["code",code]
      ],
 
  return([binary_score,table_note,table_feedback,M])
