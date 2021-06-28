@@ -115,7 +115,7 @@ class stack_ans_test_controller {
 
     /**
      * The answertest object that the functions call.
-     * @var stack_anstest
+     * @var stack_answertest_general_cas
      * @access private
      */
     private $at;
@@ -125,7 +125,7 @@ class stack_ans_test_controller {
      *
      * @param  string $AnsTest
      * @param  string $sans A CAS string assumed to represent the student's answer.
-     * @param  string $tans A CAS string assumed to represent the tecaher's answer.
+     * @param  string $tans A CAS string assumed to represent the teacher's answer.
      * @param  object $options
      * @param  CasString $casoption
      * @access public
