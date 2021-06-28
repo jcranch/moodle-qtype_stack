@@ -115,7 +115,7 @@ class stack_ans_test_controller {
 
     /**
      * The answertest object that the functions call.
-     * @var stack_anstest
+     * @var stack_answertest_general_cas
      * @access private
      */
     private $at;
