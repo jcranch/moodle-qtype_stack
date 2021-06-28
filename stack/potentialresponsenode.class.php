@@ -183,7 +183,7 @@ class stack_potentialresponse_node {
         }
         if ($resultbranch['answernote']) {
             $answernote = $resultbranch['answernote'];
-            if ($answernote == '{#an#}' && $annt) {
+            if (($answernote == '{#an#}' || $answernote == '{@an@}') && $annt) {
                 $answernote = trim($annt->get_value(),'" ');
             }
             $results->add_answernote($answernote);

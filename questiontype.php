@@ -497,17 +497,11 @@ class qtype_stack extends question_type {
 
 		// ad hoc mechanism for variable answer note
 		$annt = null;
-		if ($nodedata->falseanswernote == '{#an#}') {
+		if ($nodedata->falseanswernote == '{#an#}' ||
+		    $nodedata->falseanswernote == '{@an@}' ) {
 		    $annt = stack_ast_container::make_from_teacher_source('ANNT' . $key . ':an',
 								      '', new stack_cas_security());
 		}
-
-                // ad hoc mechanism for variable answer note
-                $annt = null;
-                if ($nodedata->falseanswernote == '{#an#}') {
-                    $annt = stack_ast_container::make_from_teacher_source('ANNT' . $key . ':an',
-                                                                      '', new stack_cas_security());
-                }
 
                 if (is_null($nodedata->falsepenalty) || $nodedata->falsepenalty === '') {
                     $falsepenalty = $questiondata->penalty;
