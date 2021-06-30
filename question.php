@@ -815,7 +815,7 @@ class qtype_stack_question extends question_graded_automatically_with_countback
 	    $note = $n ? $results->answernotes[$n-1] : '';
 	    
             $partresults[$index] = new qbehaviour_adaptivemultipart_part_result(
-                    $index, $results->score, $results->penalty, $note);
+                    $index, $results->score, $results->penalty, false, $note);
         }
 
         return $partresults;
