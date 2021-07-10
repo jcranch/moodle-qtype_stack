@@ -120,7 +120,7 @@ mcq_shuffle(opts,[k_]) := block([n,p,v,i,k,add_answernote],
  p : random_permutation(makelist(i,i,1,n)),
  p : makelist(p[i],i,1,k),
  add_answernote(i,o) := block(
-  if length(o) = 4 then (
+  if listp(o) and length(o) = 4 then (
    return(endcons(sconcat("incorrect ",i),o))
   ) else (
    return(o)
