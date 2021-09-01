@@ -407,7 +407,7 @@ complex_partfrac_set_solution(PE) := block(
   fd,tex1(genform),". \\]",nl,"We set this equal to",nl,"\\[",
   tex1(ff),", \\]",nl,"Then multiply both sides by ",tex0(fdenom),
   "and expand everything out to get",nl,"\\[\\begin{array}{rcl}",nl,
-  tex1(fnum)," &=& ",apply("+",gentop)," \\\\",nl,
+  tex1(fnum)," &=& ",tex1(apply("+",gentop))," \\\\",nl,
   tex1(numcoll)," &=& ",tex1(gtcoll),nl,"\\end{array}\\]",nl,
   "By comparing coefficients, we see that ",nl,eqns,nl,
   "These equations can be solved to give ",nl,sols,nl,
