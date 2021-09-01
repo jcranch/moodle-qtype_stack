@@ -19,3 +19,4 @@ load("double_int.mac");
 load("permutations.mac");
 load("groups.mac");
 load("builder.mac");
+load("comb.mac");
