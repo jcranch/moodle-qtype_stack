@@ -10,7 +10,7 @@ check_score_list(ans,scores,nam) := block([sc,an,fb,nn,nam1],
   an : "not a list",
   fb : "Your answer is not a list."
  ),
- if an = "" and not(every(nonnegativeintegerp,ans)) then (
+ if an = "" and not(every(nonnegintegerp,ans)) then (
   an : "not nonnegint",
   fb : "Your answer is not a list of nonnegative integers"
  ),
