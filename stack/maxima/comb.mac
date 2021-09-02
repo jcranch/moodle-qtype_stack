@@ -60,3 +60,64 @@ check_score_list(ans,scores,nam) := block([sc,an,fb,nn,nam1],
  ),
  return([sc,an,fb])
 );
+
+check_latin(ans,N0) := block([p,q,sq,N,sc,an,fb,i,i1,i2,j,j1,j2],
+ p : length(ans),
+ q : length(first(ans)),
+ if p = q then (sq : "square") else (sq : "rectangle"),
+ if setp(N0) then ( N : N0 )
+ elseif listp(N0) then (N : setify(N0)) 
+ elseif integerp(N0) and N0 > 0 then (N : setify(makelist(i,i,1,N0)))
+ else (N : setify(makelist(i,i,1,max(p,q)))),
+ sc : 0,
+ an : "",
+ fb : "",
+ for i from 1 thru p do (
+  for j from 1 thru q do (
+   if an = "" and not(member(ans[i][j],N)) then (
+    an : "invalid entry",
+    fb : sconcat(
+     "In position (",i,",",j,") you have ",ans[i][j],
+     ", which is invalid.  All entries should be elements of the ",
+     "set ",tex0(N),"."
+    )
+   )
+  )
+ ),
+ if an = "" then (
+  for i from 1 thru p do (
+   for j1 from 1 thru q-1 do (
+    for j2 from j1+1 thru q do (
+     if an = "" and ans[i][j1] = ans[i][j2] then (
+      an : "row clash",
+      fb : sconcat(
+       "In row ",i,", you have ",ans[i][j1]," in column ",
+       j1," and again in column ",j2,". This means that your ",
+       sq," is not Latin."
+      )
+     )
+    )
+   )
+  )
+ ),
+ if an = "" then (
+  for j from 1 thru q do (
+   for i1 from 1 thru p-1 do (
+    for i2 from i1+1 thru p do (
+     if an = "" and ans[i1][j] = ans[i2][j] then (
+      an : "col clash",
+      fb : sconcat(
+       "In column ",j,", you have ",ans[i1][j]," in row ",
+       i1," and again in row ",i2,". This means that your ",
+       sq," is not Latin."
+      )
+     )
+    )
+   )
+  )
+ ),
+ if an = "" then (
+  sc : 1, an : "correct"
+ ),
+ return([sc,an,fb])
+);
