@@ -125,7 +125,7 @@ class stack_question_test {
                     $format = FORMAT_HTML;
                 }
 
-                $feedback = $result->substitue_variables_in_feedback(implode(' ', $feedback));
+                $feedback = $result->substitute_variables_in_feedback(implode(' ', $feedback));
                 $feedback = format_text(stack_maths::process_display_castext($feedback),
                     $format, array('noclean' => true, 'para' => false));
             }

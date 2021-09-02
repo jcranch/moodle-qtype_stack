@@ -192,7 +192,7 @@ class stack_potentialresponse_tree_state {
      * @param string $feedback the concatenated feedback text.
      * @return string the feedback with question variables substituted.
      */
-    public function substitue_variables_in_feedback($feedback) {
+    public function substitute_variables_in_feedback($feedback) {
         // In this case, we want to get as much castext as possible back to a student.
         // Some variables might have created a run time error (e.g. division by zero).
         // These errors render $this->cascontext invalid, so the castext will not evaluate.

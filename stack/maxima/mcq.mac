@@ -120,7 +120,7 @@ mcq_shuffle(opts,[k_]) := block([n,p,v,i,k,add_answernote],
  p : random_permutation(makelist(i,i,1,n)),
  p : makelist(p[i],i,1,k),
  add_answernote(i,o) := block(
-  if length(o) = 4 then (
+  if listp(o) and length(o) = 4 then (
    return(endcons(sconcat("incorrect ",i),o))
   ) else (
    return(o)
@@ -176,7 +176,7 @@ unlabel : mcq_unlabel$
 
 mr_feedback(ans,opts,[extra_]) := block(
  [with_display : false,
-  perm : null,
+  perm : null, has_perm : false,
   keys : [], num_opts : 0,
   first_mismatch : false, first_mismatch_index : false,
   ticked   : [],  ticked_keys   : [], num_ticked   : 0,
@@ -186,7 +186,7 @@ mr_feedback(ans,opts,[extra_]) := block(
   is_correct : false, binary_score : 0, count_score : 0,
   count_note : "", crude_count_feedback : "", count_feedback : "",
   table_note : "", table_feedback : "", full_table_feedback : "",
-  i,opt,opt_ok,opt_string,M,codes,code
+  i,opt,opt_ok,opt_string,M,codes,code,an
  ],
 
  opt_ok(u) :=
@@ -205,6 +205,10 @@ mr_feedback(ans,opts,[extra_]) := block(
  simp : true,
  with_display : ev(length(extra_) > 0 and extra_[1] = true,pred),
  if  (length(extra_) > 1 and listp(extra_[2])) then perm : extra_[2],
+
+ if (listp(perm) or perm = true) then (
+  has_perm : true
+ ),
  if not(listp(perm)) then (
   perm : makelist(i,i,1,length(opts))
  ),
@@ -365,6 +369,8 @@ mr_feedback(ans,opts,[extra_]) := block(
   )
  ),
 
+ if has_perm then an : code else an : table_note, 
+
  M : ["stack_map",
       ["with_display",with_display],
       ["opts",opts]        ,["keys",keys]                  ,["num_opts",num_opts],
@@ -386,7 +392,7 @@ mr_feedback(ans,opts,[extra_]) := block(
       ["code",code]
      ],
 
- return([binary_score,table_note,table_feedback,M])
+ return([binary_score,an,table_feedback,M])
 )$
 
 mc_feedback(ans,opts,[with_display_]) := block(

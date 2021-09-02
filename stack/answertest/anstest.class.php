@@ -52,7 +52,7 @@ class stack_anstest {
     protected $atoption = null;
 
     /**
-     * @var    string
+     * @var    stack_options
      */
     protected $options;
 

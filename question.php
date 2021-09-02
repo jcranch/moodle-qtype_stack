@@ -811,8 +811,11 @@ class qtype_stack_question extends question_graded_automatically_with_countback
                 continue;
             }
 
+	    $n = count($results->answernotes);
+	    $note = $n ? $results->answernotes[$n-1] : '';
+	    
             $partresults[$index] = new qbehaviour_adaptivemultipart_part_result(
-                    $index, $results->score, $results->penalty);
+                    $index, $results->score, $results->penalty, false, $note);
         }
 
         return $partresults;

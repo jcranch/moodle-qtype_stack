@@ -493,7 +493,15 @@ class qtype_stack extends question_type {
                 $sans = stack_ast_container::make_from_teacher_source('PRSANS' . $key . ':' . $nodedata->sans,
                         '', new stack_cas_security());
                 $tans = stack_ast_container::make_from_teacher_source('PRTANS' . $key . ':' . $nodedata->tans,
-                        '', new stack_cas_security());
+								      '', new stack_cas_security());
+
+		// ad hoc mechanism for variable answer note
+		$annt = null;
+		if ($nodedata->falseanswernote == '{#an#}' ||
+		    $nodedata->falseanswernote == '{@an@}' ) {
+		    $annt = stack_ast_container::make_from_teacher_source('ANNT' . $key . ':an',
+								      '', new stack_cas_security());
+		}
 
                 if (is_null($nodedata->falsepenalty) || $nodedata->falsepenalty === '') {
                     $falsepenalty = $questiondata->penalty;
@@ -508,6 +516,7 @@ class qtype_stack extends question_type {
 
                 $node = new stack_potentialresponse_node($sans, $tans,
                         $nodedata->answertest, $nodedata->testoptions, (bool) $nodedata->quiet, '', $nodedata->id);
+                $node->set_annt($annt);
                 $node->add_branch(0, $nodedata->falsescoremode, $nodedata->falsescore,
                         $falsepenalty, $nodedata->falsenextnode,
                         $nodedata->falsefeedback, $nodedata->falsefeedbackformat, $nodedata->falseanswernote);

@@ -48,6 +48,11 @@ class stack_potentialresponse_node {
     public $tans;
 
     /**
+     * @var stack_ast_container Holds computed answer note for false branch, or null.
+     */
+    public $annt = null;
+
+    /**
      * @var string Name of answer test to be used here.
      */
     private $answertest;
@@ -107,6 +112,14 @@ class stack_potentialresponse_node {
         $this->branches = array();
     }
 
+    function set_annt($annt) {
+        if ($annt === null || is_a($annt, 'stack_ast_container')) {
+            $this->annt = $annt;
+        } else {
+            throw new stack_exception('stack_potentialresponse_node: annt must be a stack_ast_container');
+        }
+    }
+
     /**
      * Add information into each branch
      *
@@ -146,7 +159,7 @@ class stack_potentialresponse_node {
      * @return int the next node to evaluate (or -1 to stop).
      */
     public function do_test($nsans, $ntans, $ncasopts, $options, $contextsession,
-            stack_potentialresponse_tree_state $results) {
+            stack_potentialresponse_tree_state $results,$annt = null) {
 
         // If an option is required by the answer test, but not processed by the CAS then take the raw value.
         if ($this->required_atoptions() && !$this->process_atoptions()) {
@@ -169,7 +182,11 @@ class stack_potentialresponse_node {
             $trace['atanswernote'] = $at->get_at_answernote();
         }
         if ($resultbranch['answernote']) {
-            $results->add_answernote($resultbranch['answernote']);
+            $answernote = $resultbranch['answernote'];
+            if (($answernote == '{#an#}' || $answernote == '{@an@}') && $annt) {
+                $answernote = trim($annt->get_value(),'" ');
+            }
+            $results->add_answernote($answernote);
         }
 
         // If the answer test is running in quiet mode we suppress any
@@ -218,26 +235,31 @@ class stack_potentialresponse_node {
      * @return int the next node to evaluate, or -1 to stop.
      */
     public function traverse($results, $key, $cascontext, $answers, $options, $contextsession) {
-
         $errorfree = true;
-        if ($cascontext->get_by_key('PRSANS' . $key)->get_errors() !== '') {
-            $results->_errors .= $cascontext->get_by_key('PRSANS' . $key)->get_errors();
+        $prsans  = $cascontext->get_by_key('PRSANS' . $key);
+        $prtans  = $cascontext->get_by_key('PRTANS' . $key);
+        $pratopt = $cascontext->get_by_key('PRATOPT' . $key);
+        $annt = $cascontext->get_by_key('ANNT' . $key);
+
+        if ($prsans !== null && ($err = $prsans->get_errors()) !== '') {
+            $results->_errors .= $err;
             $results->add_feedback(' '.stack_string('prtruntimeerror',
-                    array('node' => 'PRSANS'.($key + 1), 'error' => $cascontext->get_by_key('PRSANS' . $key)->get_errors())));
+                    array('node' => 'PRSANS'.($key + 1), 'error' => $err)));
             $errorfree = false;
         }
-        if ($cascontext->get_by_key('PRTANS' . $key) !== null && $cascontext->get_by_key('PRTANS' . $key)->get_errors() !== '') {
-            $results->_errors .= $cascontext->get_by_key('PRTANS' . $key)->get_errors();
+        if ($prtans !== null && ($err = $prtans->get_errors()) !== '') {
+            $results->_errors .= $err;
             $results->add_feedback(' '.stack_string('prtruntimeerror',
-                    array('node' => 'PRTANS'.($key + 1), 'error' => $cascontext->get_by_key('PRTANS' . $key)->get_errors())));
+                    array('node' => 'PRTANS'.($key + 1), 'error' => $err)));
             $errorfree = false;
         }
-        if ($cascontext->get_by_key('PRATOPT' . $key) !== null && $cascontext->get_by_key('PRATOPT' . $key)->get_errors() !== '') {
-            $results->_errors .= $cascontext->get_by_key('PRATOPT' . $key)->get_errors();
+        if ($pratopt !== null && ($err = $pratopt->get_errors()) !== '') {
+            $results->_errors .= $err;
             $results->add_feedback(' '.stack_string('prtruntimeerror',
-                    array('node' => 'PRATOPT'.($key + 1), 'error' => $cascontext->get_by_key('PRATOPT' . $key)->get_errors())));
+                    array('node' => 'PRATOPT'.($key + 1), 'error' => $err)));
             $errorfree = false;
         }
+
         if (!($errorfree)) {
             return -1;
         }
@@ -248,6 +270,7 @@ class stack_potentialresponse_node {
         // TODO: refactor this to pass the ast, then we won't need to "subvert the CAS".....
         $sans   = $cascontext->get_by_key('PRSANS' . $key);
         $tans   = $cascontext->get_by_key('PRTANS' . $key);
+        $annt   = $cascontext->get_by_key('ANNT' . $key);
         foreach ($answers as $cskey => $val) {
             // Check whether the raw input to the node exactly matches one of the answer names.
             $cs = $this->sans;
@@ -267,7 +290,7 @@ class stack_potentialresponse_node {
             $atopts = null;
         }
 
-        return $this->do_test($sans, $tans, $atopts, $options, $contextsession, $results);
+        return $this->do_test($sans, $tans, $atopts, $options, $contextsession, $results, $annt);
     }
 
     /*
@@ -339,6 +362,12 @@ class stack_potentialresponse_node {
         $variables[1]->set_key('PRSANS' . $key);
         $variables[2] = clone $this->tans;
         $variables[2]->set_key('PRTANS' . $key);
+
+        if ($this->annt !== null) {
+            $annt = clone $this->annt;
+            $annt->set_key('ANNT' . $key);
+            $variables[] = $annt;
+        }
 
         if (stack_ans_test_controller::process_atoptions($this->answertest) && trim($this->atoptions) != '') {
             // We always simplify the options field.
