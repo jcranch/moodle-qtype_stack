@@ -121,3 +121,26 @@ check_latin(ans,N0) := block([p,q,sq,N,sc,an,fb,i,i1,i2,j,j1,j2],
  ),
  return([sc,an,fb])
 );
+
+check_latin_orthogonal(L,M,Ln,Mn) := block([sc,an,fb,p,q,T,LM,k1,k2],
+ sc : 0, an : "", fb : "",
+ p : length(L),
+ q : length(M),
+ T : apply(append,makelist(makelist([i,j],j,1,q),i,1,p)),
+ LM : apply(append,makelist(makelist([L[i][j],M[i][j]],j,1,q),i,1,p)),
+ for k1 from 1 thru p * q do (
+  for k2 from k1+1 thru p * q do (
+   if an = "" and LM[k1] = LM[k2] then (
+    an : "clash",
+    fb : sconcat(
+     "In the merged table \\(",Ln,"*",Mn,"\\), the pair ",
+     tex0(LM[k1])," appears in position ",tex0(T[k1])," and ",
+     "again in position ",tex0(T[k2]),". This means that ",
+     "\\(",Ln,"\\) and \\(",Mn,"\\) are not orthogonal."
+    )
+   )
+  )
+ ),
+ if an = "" then (sc : 1, an : "correct"),
+ return([sc,an,fb])
+);
