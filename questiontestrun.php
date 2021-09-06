@@ -136,6 +136,7 @@ if ($question->deployedseeds) {
 
 $variantmatched = false;
 $variantdeployed = false;
+$questionnotes = array();
 if (!$question->has_random_variants()) {
     echo html_writer::tag('p', stack_string('questiondoesnotuserandomisation') .
             ' ' . $OUTPUT->action_icon(question_preview_url($questionid, null, null, null, null, $context),
@@ -145,7 +146,8 @@ if (!$question->has_random_variants()) {
 
 if (empty($question->deployedseeds)) {
     if ($question->has_random_variants()) {
-        echo html_writer::tag('p', stack_string('questionnotdeployedyet').' '.
+        echo html_writer::tag('p', stack_string_error('runquestiontests_alert') . ' ' .
+                stack_string('questionnotdeployedyet') . ' ' .
                 $OUTPUT->action_icon(question_preview_url($questionid, null, null, null, null, $context),
                     new pix_icon('t/preview', get_string('preview'))));
     }
@@ -197,6 +199,8 @@ if (empty($question->deployedseeds)) {
         $qunote->set_preferred_behaviour('adaptive');
         $slotnote = $qunote->add_question($qn, $qn->defaultmark);
         $qunote->start_question($slotnote);
+        // Check for duplicate question notes.
+        $questionnotes[] = $qn->get_question_summary();
 
         // Check if the question note has already been deployed.
         if ($qn->get_question_summary() == $question->get_question_summary()) {
@@ -235,6 +239,10 @@ if (empty($question->deployedseeds)) {
     usort($notestable->data, 'sort_by_note');
 
     echo html_writer::table($notestable);
+}
+
+if (count($questionnotes) != count(array_flip($questionnotes))) {
+    echo html_writer::tag('p', stack_string_error('deployduplicateerror'));
 }
 flush();
 
@@ -319,12 +327,12 @@ foreach ($testscases as $key => $testcase) {
 // Display the test results.
 $addlabel = stack_string('addanothertestcase', 'qtype_stack');
 if (empty($testresults)) {
-    echo html_writer::tag('p', stack_string('notestcasesyet'));
+    echo html_writer::tag('p', stack_string_error('runquestiontests_alert') . ' ' . stack_string('notestcasesyet'));
     $addlabel = stack_string('addatestcase', 'qtype_stack');
 } else if ($allpassed) {
     echo html_writer::tag('p', stack_string('stackInstall_testsuite_pass'), array('class' => 'overallresult pass'));
 } else {
-    echo html_writer::tag('p', stack_string('stackInstall_testsuite_fail'), array('class' => 'overallresult fail'));
+    echo html_writer::tag('p', stack_string_error('stackInstall_testsuite_fail'), array('class' => 'overallresult fail'));
 }
 
 if ($canedit) {
@@ -341,6 +349,9 @@ foreach ($testresults as $key => $result) {
     echo $OUTPUT->heading(stack_string('testcasexresult',
             array('no' => $key, 'result' => $outcome)), 3);
 
+    if ($result->emptytestcase) {
+        echo html_writer::tag('p', stack_string_error('questiontestempty'));
+    }
     // Display the information about the inputs.
     $inputstable = new html_table();
     $inputstable->head = array(
@@ -521,7 +532,7 @@ $chatparams['simp'] = $simp;
 $chatparams['cas'] = $question->generalfeedback;
 // We've chosen not to send a specific seed since it is helpful
 // to test the general feedback in a random context.
-echo $OUTPUT->single_button(new moodle_url('/question/type/stack/caschat.php', $chatparams), stack_string('chat'));
+echo $OUTPUT->single_button(new moodle_url('/question/type/stack/adminui/caschat.php', $chatparams), stack_string('chat'));
 
 if ($question->stackversion == null) {
     echo html_writer::tag('p', stack_string('stackversionnone'));
