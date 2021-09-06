@@ -226,7 +226,7 @@ complex_tex(z) := block([x,y,tx,ty,tyi],
  )
 )$
 
-cimplex_tex0(u) := sconcat("\\(",complex_tex(u),"\\)");
+complex_tex0(u) := sconcat("\\(",complex_tex(u),"\\)");
 
 ijk_tex(u) := block([v,ss,o,s0,s],
  v : ["\\mathbf{i}","\\mathbf{j}","\\mathbf{k}"],
@@ -603,6 +603,39 @@ randpoly([u]) := block([var,num_terms,coeffs,exps,exp_list],
  if length(exps) < num_terms then (error("randpoly error: more terms than possible")),
  exp_list : rand_selection(exps,num_terms),
  return(sum(rand(coeffs) * var ^ exp_list[i],i,1,num_terms))
+);
+
+/* This function attempts to detect whether a student has supplied 
+   an answer involving a trigonometric function applied to a nonzero
+   integer argument, which is presumably intended to be an angle 
+   expressed in degrees.  If the argument u has a subexpression 
+   such as sin(60), then the first such subexpression will be 
+   returned.  If there are no such subexpressions, then false
+   will be returned.
+ */
+
+uses_degreesp(u) := block([t,v,ret],
+ if atom(u) then (
+  return(false)
+ ) elseif member(safe_op(u),["sin","cos","tan","csc","sec","cot"]) then (
+  if length(u) = 1 then (
+   t : first(args(u)),
+   if integerp(t) and not(t = 0) then (
+    return(u)
+   ) else (
+    return(false)
+   )
+  ) else (
+   return(false)
+  )
+ ) else (
+  ret : false,
+  for v in args(u) do (
+   ret : uses_degreesp(v),
+   if not(ret = false) then return(ret)
+  )
+ ),
+ return(ret)
 );
 
 show_config() := block([],return(["maxima_tempdir: ",maxima_tempdir,
