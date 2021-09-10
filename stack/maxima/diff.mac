@@ -105,7 +105,8 @@ diff_problem_test(sa,Q) := block(
  fb : "",
  an : "",
  if (ATAlgEquiv(sa,rightans)[2]) then (
-  sc : 1
+  sc : 1,
+  an : "correct"
  ) else (
   sc : 0,
   cv : check_vars(sa,Q),
@@ -113,7 +114,7 @@ diff_problem_test(sa,Q) := block(
   if (length(extra) > 0) then (
    an : "extra vars",
    fb : sconcat(
-         feedback,
+         fb,
 	 "Your answer involves the following variable(s) that do not occur in the question or the right answer:",
          " <font color=\"red\"><tt>",
 	 simplode(extra,","),
@@ -268,6 +269,7 @@ diff_problem_test(sa,Q) := block(
    )
   )
  ),
+ if an = "" then ( an : "incorrect" ),
  return([sc,fb,an])
 )$
 
