@@ -226,7 +226,7 @@ complex_tex(z) := block([x,y,tx,ty,tyi],
  )
 )$
 
-cimplex_tex0(u) := sconcat("\\(",complex_tex(u),"\\)");
+complex_tex0(u) := sconcat("\\(",complex_tex(u),"\\)");
 
 ijk_tex(u) := block([v,ss,o,s0,s],
  v : ["\\mathbf{i}","\\mathbf{j}","\\mathbf{k}"],

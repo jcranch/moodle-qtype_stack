@@ -596,7 +596,7 @@ class maxima_parser_utils {
                     }
                     $v = null;
                     // Now ev-flags apply to the rhs of an assingment but not the left.
-                    if ($node->statement instanceof MP_Operation && ($node->op === ':' || $node->op === ':=')) {
+                    if ($node->statement instanceof MP_Operation && isset($node->op) && ($node->op === ':' || $node->op === ':=')) {
                         $v = new MP_Operation($node->op, clone $node->lhs, new MP_FunctionCall(new MP_Identifier('ev'),
                                 array_merge([clone $node->rhs], $flags)));
                     } else {
