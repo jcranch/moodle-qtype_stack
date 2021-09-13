@@ -176,7 +176,7 @@ check_vector_ijk(u,[coeffp_]) := block([T,t],
  ) elseif (t = "vector_2" or t = "vector_3" or t = "list") then (
   return([false,"list","Your answer is supposed to be a vector written as a combination of \\(\\mathbf{i}\\), \\(\\mathbf{j}\\) and \\(\\mathbf{k}\\).  For example, it could be something like \\(3\\mathbf{i}-2\\mathbf{k}\\), which can be entered as <code>3*i-2*k</code>.  You have instead entered a list enclosed in square brackets, which is not the form that is required here",T])
  ) elseif (t = "scalar") then (
-  return([false,"list","Your answer is supposed to be a vector, but you have entered a scalar.",T])
+  return([false,"scalar","Your answer is supposed to be a vector, but you have entered a scalar.",T])
  ) else (
   return([false,"other","Your answer is supposed to be a vector, but in fact it seems to be neither a scalar nor a vector",T])
  )
@@ -194,7 +194,7 @@ check_vector_3(u,[coeffp_]) := block([T,t],
  ) elseif (t = "list") then (
   return([false,"list","Your answer is supposed to be a 3-dimensional vector.  You have entered a list with square brackets, but it does not have three entries, so it is not a 3-dimensional vector.",T])
  ) elseif (t = "scalar") then (
-  return([false,"list","Your answer is supposed to be a vector, but you have entered a scalar.",T])
+  return([false,"scalar","Your answer is supposed to be a vector, but you have entered a scalar.",T])
  ) else (
   return([false,"other","Your answer is supposed to be a vector, but in fact it seems to be neither a scalar nor a vector",T])
  )
@@ -210,7 +210,7 @@ check_vector_3_or_ijk(u,[coeffp_]) := block([T,t],
  ) elseif (t = "list") then (
   return([false,"list","Your answer is supposed to be a 3-dimensional vector.  You have entered a list with square brackets, but it does not have three entries, so it is not a 3-dimensional vector.",T])
  ) elseif (t = "scalar") then (
-  return([false,"list","Your answer is supposed to be a vector, but you have entered a scalar.",T])
+  return([false,"scalar","Your answer is supposed to be a vector, but you have entered a scalar.",T])
  ) else (
   return([false,"other","Your answer is supposed to be a vector, but in fact it seems to be neither a scalar nor a vector",T])
  )
@@ -226,7 +226,7 @@ check_vector_ij(u,[coeffp_]) := block([T,t],
  ) elseif (t = "vector_2" or t = "vector_3" or t = "list") then (
   return([false,"list","Your answer is supposed to be a 2-dimensional vector written as a combination of \\(\\mathbf{i}\\) and \\(\\mathbf{j}\\).  For example, it could be something like \\(3\\mathbf{i}-2\\mathbf{j}\\), which can be entered as <code>3*i-2*j</code>.  You have instead entered a list enclosed in square brackets, which is not the form that is required here",T])
  ) elseif (t = "scalar") then (
-  return([false,"list","Your answer is supposed to be a vector, but you have entered a scalar.",T])
+  return([false,"scalar","Your answer is supposed to be a vector, but you have entered a scalar.",T])
  ) else (
   return([false,"other","Your answer is supposed to be a vector, but in fact it seems to be neither a scalar nor a vector",T])
  )
@@ -244,7 +244,7 @@ check_vector_2(u,[coeffp_]) := block([T,t],
  ) elseif (t = "list") then (
   return([false,"list","Your answer is supposed to be a 2-dimensional vector.  You have entered a list with square brackets, but it does not have two entries, so it is not a 2-dimensional vector.",T])
  ) elseif (t = "scalar") then (
-  return([false,"list","Your answer is supposed to be a vector, but you have entered a scalar.",T])
+  return([false,"scalar","Your answer is supposed to be a vector, but you have entered a scalar.",T])
  ) else (
   return([false,"other","Your answer is supposed to be a vector, but in fact it seems to be neither a scalar nor a vector",T])
  )
@@ -260,7 +260,7 @@ check_vector_2_or_ij(u,[coeffp_]) := block([T,t],
  ) elseif (t = "list") then (
   return([false,"list","Your answer is supposed to be a 2-dimensional vector.  You have entered a list with square brackets, but it does not have two entries, so it is not a 2-dimensional vector.",T])
  ) elseif (t = "scalar") then (
-  return([false,"list","Your answer is supposed to be a vector, but you have entered a scalar.",T])
+  return([false,"scalar","Your answer is supposed to be a vector, but you have entered a scalar.",T])
  ) else (
   return([false,"other","Your answer is supposed to be a vector, but in fact it seems to be neither a scalar nor a vector",T])
  )
