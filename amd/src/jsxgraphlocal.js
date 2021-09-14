@@ -230,6 +230,43 @@ define(["qtype_stack/jsxgraphcore-lazy"], function(JXG) {
   }
  };
  
+ JXL.joinCurves = function(board, parents, attributes) {
+  var curves = parents, 
+      attr = JXG.copyAttributes(attributes, board.options, 'curve'),
+      c = board.create('curve', [[0], [0]], attr);
+
+  c.updateDataArray = function() {
+   var i, le = curves.length;
+
+   // The paths have to be connected
+   this.dataX = [];
+   this.dataY = [];
+   for (i = 0; i < le; i++) {
+    var dX = curves[i].dataX;
+    var dY = curves[i].dataY;
+    if (curves[i].reverse) {
+     dX = dX.reverse();
+     dY = dY.reverse();
+    }
+    if (i < le - 1) {
+     this.dataX = this.dataX.concat(dX.slice(0,-1));
+     this.dataY = this.dataY.concat(dY.slice(0,-1));
+    } else {
+     this.dataX = this.dataX.concat(dX);
+     this.dataY = this.dataY.concat(dY);
+    }
+   }
+
+   if (this.dataX.length<4) {
+    this.bezierDegree = 1;
+   } else {
+    this.bezierDegree = curves[0].bezierDegree;
+   }
+  };
+  c.prepareUpdate().update().updateVisibility().updateRenderer();
+  return c;
+ };
+  
  JXL.venn2 = {
   board : null,
   display_opts : {
@@ -263,13 +300,12 @@ define(["qtype_stack/jsxgraphcore-lazy"], function(JXG) {
   this.c3 = board.create('arc',[this.bc,this.i0,this.i1],{visible : false});
   this.c2.reverse = true;
   this.c3.reverse = true;
-  this.A  = JXG.joinCurves(board,[this.c1,this.c2],
+  this.A  = JXL.joinCurves(board,[this.c1,this.c2],
                  {strokeColor : this.A_color, fillColor : this.A_color});
-  this.B  = JXG.joinCurves(board,[this.c0,this.c3],
+  this.B  = JXL.joinCurves(board,[this.c0,this.c3],
                  {strokeColor : this.B_color, fillColor : this.B_color});
-  this.AB = JXG.joinCurves(board,[c0,c1],
+  this.AB = JXL.joinCurves(board,[c0,c1],
                  {strokeColor : this.AB_color, fillColor : this.AB_color});
-  
  }
   
  return JXL;
