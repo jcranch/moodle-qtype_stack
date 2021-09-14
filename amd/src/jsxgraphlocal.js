@@ -230,5 +230,47 @@ define(["qtype_stack/jsxgraphcore-lazy"], function(JXG) {
   }
  };
  
+ JXL.venn2 = {
+  board : null,
+  display_opts : {
+   cx : 0,
+   cy : 0,
+   dx : 0.7,
+   r  : 1,
+   A_color  : '#00FF88',
+   B_color  : '#0088FF',
+   AB_color : '#FFAA00'
+  }
+ }
+   
+ JXL.venn2.draw = function(board,display_opts = null) {
+  this.board = board;
+    
+  var D = Object.assign({},this.display_opts);
+  if (display_opts) {
+   D = Object.assign(D,display_opts);
+  }
+  
+  this.ac = board.create('point',[D.cx-D.dx,D.cy],{visible : false});
+  this.bc = board.create('point',[D.cx+D.dx,D.cy],{visible : false});
+  this.Ac = board.create('circle',[this.ac,D.r],{visible : false});
+  this.Bc = board.create('circle',[this.bc,D.r],{visible : false});
+  this.i0 = board.create('intersection',[this.Ac,this.Bc,0],{visible : false});
+  this.i1 = board.create('intersection',[this.Ac,this.Bc,1],{visible : false});
+  this.c0 = board.create('arc',[this.ac,this.i0,this.i1],{visible : false});
+  this.c1 = board.create('arc',[this.bc,this.i1,this.i0],{visible : false});
+  this.c2 = board.create('arc',[this.ac,this.i1,this.i0],{visible : false});
+  this.c3 = board.create('arc',[this.bc,this.i0,this.i1],{visible : false});
+  this.c2.reverse = true;
+  this.c3.reverse = true;
+  this.A  = JXG.joinCurves(board,[this.c1,this.c2],
+                 {strokeColor : this.A_color, fillColor : this.A_color});
+  this.B  = JXG.joinCurves(board,[this.c0,this.c3],
+                 {strokeColor : this.B_color, fillColor : this.B_color});
+  this.AB = JXG.joinCurves(board,[c0,c1],
+                 {strokeColor : this.AB_color, fillColor : this.AB_color});
+  
+ }
+  
  return JXL;
 });
