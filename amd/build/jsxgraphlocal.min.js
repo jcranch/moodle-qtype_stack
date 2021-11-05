@@ -301,11 +301,11 @@ define(["qtype_stack/jsxgraphcore-lazy"], function(JXG) {
   this.c2.reverse = true;
   this.c3.reverse = true;
   this.A  = JXL.joinCurves(board,[this.c1,this.c2],
-                 {strokeColor : this.A_color, fillColor : this.A_color});
+                 {strokeColor : D.A_color, fillColor : D.A_color});
   this.B  = JXL.joinCurves(board,[this.c0,this.c3],
-                 {strokeColor : this.B_color, fillColor : this.B_color});
-  this.AB = JXL.joinCurves(board,[c0,c1],
-                 {strokeColor : this.AB_color, fillColor : this.AB_color});
+                 {strokeColor : D.B_color, fillColor : D.B_color});
+  this.AB = JXL.joinCurves(board,[this.c0,this.c1],
+                 {strokeColor : D.AB_color, fillColor : D.AB_color});
  }
   
  return JXL;
