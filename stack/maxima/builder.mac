@@ -48,6 +48,18 @@ builder_needs_intro(s) := block(
  ))
 );
 
+builder_check_present(ans,key) := member(key,ans);
+
+builder_check_precedes(ans,key_a,key_b) := block([],
+ if not(member(key_a,ans)) then return(false),
+ if not(member(key_b,ans)) then return(false),
+ for k in ans do (
+  if ans = key_a then return(true),
+  if ans = key_b then return(false)
+ ),
+ return(false)
+);
+
 builder_check_needs(ans,dict,needers,needed,fb) := block(
  [seen,ret,k],
  seen : [],
