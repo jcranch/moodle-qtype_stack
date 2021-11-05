@@ -60,6 +60,17 @@ builder_check_precedes(ans,key_a,key_b) := block([],
  return(false)
 );
 
+builder_get_phrase(key,opts) := block([o,t],
+ t : "",
+ for o in opts do (
+  if first(o) = key then (
+    t : second(o),
+    return(t)
+  )
+ ),
+ return(t) 
+);
+
 builder_check_needs(ans,dict,needers,needed,fb) := block(
  [seen,ret,k],
  seen : [],
