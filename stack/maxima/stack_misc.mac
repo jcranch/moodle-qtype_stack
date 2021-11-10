@@ -399,18 +399,15 @@ complex_factor_poly(p,var) :=  block([p0,n,r,q,a,dp,i],
  p0 : expand(p),
  n : hipow(p0,var),
  r : map(rhs,solve(p=0,var)),
- q : coeff(p0,var,n),
+ q : 1,
  for a in r do (
-  dp : diff(p0,var),
-  i : 1,
-  while(ev(expand(subst(var = a,dp)),simp) = 0) do (
-   i : i + 1, dp : diff(dp,var)
-  ) ,
-  q : q * (var - a) ^ i
+  while(ev(expand(subst(var = a,p0)),simp) = 0) do (
+    q : q * (var - a),
+    p0 : quotient(p0,var - a)
+  )
  ),
- return(q)
+ return(q * p0)
 )$
-
 
 complex_factor(p,var) := block([pf,n,d],
  pf : factor(p),
