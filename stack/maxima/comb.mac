@@ -1,5 +1,5 @@
 check_score_list(ans,scores,nam) := block([sc,an,fb,nn,nam1],
- sc : "", an : "", fb : "",
+ sc : 0, an : "", fb : "",
  nn : length(scores),
  if nam = "" then (
   nam1 : "the tournament"
