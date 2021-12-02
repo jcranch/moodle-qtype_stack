@@ -214,7 +214,7 @@ diff_problem_test(sa,Q) := block(
 	"\\[ ",tex1(fn)," = ",tex1(f)," = ",tex1(newvar^exptvar)," \\]",newline,
 	"so",newline,
 	"\\[ ",tex1(noundiff(fn,var))," = ",
-	       tex1(exptvar * var ^ (exptvar - 1) * noundiff(newvar,var))," = ",
+	       tex1(exptvar * newvar ^ (exptvar - 1) * noundiff(newvar,var))," = ",
 	       tex1(wrongans1),". \\]",newline,
 	"Unfortunately, this is not correct, because the exponent \\(",
         tex1(expt),"\\) depends on \\(",tex1(var),"\\).  This means that there ",

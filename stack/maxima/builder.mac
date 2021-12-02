@@ -48,6 +48,30 @@ builder_needs_intro(s) := block(
  ))
 );
 
+builder_get_phrase(key,opts) := block([o,t],
+ t : "",
+ for o in opts do (
+  if first(o) = key then (
+    t : second(o),
+    return(t)
+  )
+ ),
+ return(t) 
+);
+
+builder_check_present(ans,key) := member(key,ans);
+
+builder_check_precedes(ans,key_a,key_b) := block([k,r],
+ if not(member(key_a,ans)) then return(false),
+ if not(member(key_b,ans)) then return(false),
+ r : false,
+ for k in ans do (
+  if k = key_a then (r : true, return(r)),
+  if k = key_b then (r : false, return(r))
+ ),
+ return(r)
+);
+
 builder_check_needs(ans,dict,needers,needed,fb) := block(
  [seen,ret,k],
  seen : [],
