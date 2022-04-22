@@ -73,11 +73,17 @@ builder_check_precedes(ans,key_a,key_b) := block([k,r],
 );
 
 builder_check_needs(ans,dict,needers,needed,fb) := block(
- [seen,ret,k],
+ [seen,needed_set,needed_seen,ret,k,Z],
  seen : [],
  ret : false,
+ if setp(needed) then
+  needed_set : needed
+ elseif listp(needed) then 
+  needed_set : apply(set,needed) 
+ else 
+  needed_set : {needed}, 
  for k in ans do (
-  if member(k,needers) and not(member(needed,seen)) then (
+  if member(k,needers) and length(intersect(needed_set,apply(set,seen))) = 0 then (
    ffb : sconcat(builder_say_includes(dict[k]),fb),
    ret : ["needs",k,needed,ffb],
    return(ret)
