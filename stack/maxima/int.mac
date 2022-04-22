@@ -200,9 +200,19 @@ defint_problem_test(sa,Q) := block(
     ", with limits ",tex0(var=aa)," and ",tex0(var=bb),
     ", so your answer should not depend on ",tex0(var),". ",
     "For example, \\(\\int x^3\\,dx=x^4/4\\) (which does depend on \\(x\\)) ",
-    "but \\int_0^2 x^3\\,dx=4\\) (which does not depend on \\(x\\))."
+    "but \\(\\int_0^2 x^3\\,dx=4\\) (which does not depend on \\(x\\))."
    ),
    an : "indefinite"
+  ) elseif ((extra = ["c"] and ATAlgEquiv(sa,rightans + c)[2]) or
+            (extra = ["C"] and ATAlgEquiv(sa,rightans + C)[2])) then (
+   an : "arbitrary constant",
+   fb : sconcat(
+    "It seems that you have included an arbitrary constant of ",
+    "integration.  This is appropriate when calculating an ",
+    "<em>indefinite</em> integral.  However, when we use the ",
+    "indefinite integral to calculate a definite integral, the ",
+    "constant will cancel out, so it should not appear here."
+   )
   ) else (
    an : "incorrect"
   )
