@@ -137,10 +137,14 @@ class stack_cas_castext2_jsxgraph extends stack_cas_castext2_block {
 
         $attributes = ['class' => 'jxgbox', 'style' => $style, 'id' => $divid];
 
-        $PAGE->requires->js_amd_inline(
-            'require(["qtype_stack/jsxgraph","qtype_stack/jsxgraphcore-lazy","core/yui"], '
-            . 'function(stack_jxg, JXG, Y){Y.use("mathjax",function(){' . $code
-            . '});});');
+        $PAGE->requires->js_amd_inline('require([' .
+            '"qtype_stack/jsxgraphlocal",' .
+            '"qtype_stack/jsxgraph",' .
+            '"qtype_stack/jsxgraphcore-lazy",' .
+            '"core/yui"' .
+            '], ' .
+            'function(JXL,stack_jxg, JXG, Y) { ' .
+            'Y.use("mathjax",function(){'.$code.'});});');
 
         self::$countgraphs = self::$countgraphs + 1;
 
