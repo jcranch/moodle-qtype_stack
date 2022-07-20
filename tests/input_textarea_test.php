@@ -14,7 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with Stack.  If not, see <http://www.gnu.org/licenses/>.
 
-defined('MOODLE_INTERNAL') || die();
+namespace qtype_stack;
+
+use qtype_stack_testcase;
+use stack_cas_security;
+use stack_input;
+use stack_input_factory;
+use stack_input_state;
+use stack_options;
+use stack_textarea_input;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -31,6 +39,7 @@ require_once(__DIR__ . '/fixtures/test_base.php');
 
 /**
  * @group qtype_stack
+ * @covers \stack_textarea_input
  */
 class input_textarea_test extends qtype_stack_testcase {
     public function test_render_blank() {

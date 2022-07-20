@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Stack.  If not, see <http://www.gnu.org/licenses/>.
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * A basic text-field input.
  *
@@ -30,7 +28,8 @@ class stack_matrix_input extends stack_input {
         'nounits' => false,
         'simp' => false,
         'allowempty' => false,
-        'consolidatesubscripts' => false
+        'consolidatesubscripts' => false,
+        'checkvars' => 0
     );
 
     public function adapt_to_model_answer($teacheranswer) {

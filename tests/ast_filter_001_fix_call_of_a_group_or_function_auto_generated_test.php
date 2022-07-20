@@ -14,6 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with Stack.  If not, see <http://www.gnu.org/licenses/>.
 
+namespace qtype_stack;
+
+use qtype_stack_ast_testcase;
+use stack_cas_security;
+use stack_parsing_rule_factory;
+
 defined('MOODLE_INTERNAL') || die();
 
 require_once(__DIR__ . '/../tests/fixtures/ast_filter_test_base.php');
@@ -22,6 +28,7 @@ require_once(__DIR__ . '/../tests/fixtures/ast_filter_test_base.php');
 /**
  * @group qtype_stack
  * @group qtype_stack_ast_filters
+ * @covers \ast_filter_001_fix_call_of_a_group_or_function
  */
 
 class ast_filter_001_fix_call_of_a_group_or_function_auto_generated_test extends qtype_stack_ast_testcase {

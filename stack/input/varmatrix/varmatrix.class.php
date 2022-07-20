@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Stack.  If not, see <http://www.gnu.org/licenses/>.
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * An input which provides a matrix input of variable size.
  * Lots in common with the textarea class.
@@ -32,6 +30,7 @@ class stack_varmatrix_input extends stack_input {
         'dealias' => false, // This is needed to stop pi->%pi etc.
         'nounify' => true,
         'varmatrix' => true,
+        'checkvars' => 0
     );
 
     protected $extraoptions = array(

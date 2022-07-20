@@ -124,7 +124,7 @@ class stack_inputvalidation_test_data {
         array('[[1,2],[3,4]]', 'php_true', '[[1,2],[3,4]]', 'cas_true',
                 '\left[ \left[ 1 , 2 \right] , \left[ 3 , 4 \right] \right]', '', ""),
         array('{}', 'php_true', '{}', 'cas_true', '\left \{ \right \}', '', "Sets"),
-        array('{1}', 'php_true', '{1}', 'cas_true', '\left \{1 \right \}', '', ""),        
+        array('{1}', 'php_true', '{1}', 'cas_true', '\left \{1 \right \}', '', ""),
         array('{1,2,3.4}', 'php_true', '{1,2,3.4}', 'cas_true', '\left \{1 , 2 , 3.4 \right \}', '', ""),
         array('{x, y, z }', 'php_true', '{x,y,z}', 'cas_true', '\left \{x , y , z \right \}', '', ""),
         array('set(x, y, z)', 'php_false', '', '', '', 'forbiddenFunction', ""),
@@ -144,7 +144,8 @@ class stack_inputvalidation_test_data {
         array('a[1,2]', 'php_true', 'a[1,2]', 'cas_true', 'a_{1,2}', '', ""),
         array('(a,b,c)', 'php_true', 'ntuple(a,b,c)', 'cas_true', '\left(a, b, c\right)', '',
         "In Maxima this syntax is a programme block which we turn into an inert function for student's input."),
-        array('{(x,y),(b,c)}', 'php_true', '{ntuple(x,y),ntuple(b,c)}', 'cas_true', '\left \{\left(x, y\right) , \left(b, c\right) \right \}', '', ""),
+        array('{(x,y),(b,c)}', 'php_true', '{ntuple(x,y),ntuple(b,c)}', 'cas_true',
+            '\left \{\left(x, y\right) , \left(b, c\right) \right \}', '', ""),
         array('((x,y),a)', 'php_true', 'ntuple(ntuple(x,y),a)', 'cas_true', '\left(\left(x, y\right), a\right)', '', ""),
         array('((x,y)/2,a)', 'php_false', 'ntuple((x,y)/2,a)', 'cas_true', '', 'Illegal_groups', ""),
         array('(x,y)+3', 'php_false', 'ntuple(x,y)+3', 'cas_true', '', 'Illegal_groups', ""),
@@ -175,6 +176,7 @@ class stack_inputvalidation_test_data {
         array('x < y', 'php_true', 'x < y', 'cas_true', 'x < y', '', ""),
         array('x > y', 'php_true', 'x > y', 'cas_true', 'x > y', '', ""),
         array('x = y', 'php_true', 'x = y', 'cas_true', 'x=y', '', ""),
+        array('x # y', 'php_true', 'x#y', 'cas_true', 'x\neq y', '', ""),
         array('x!', 'php_true', 'x!', 'cas_true', 'x!', '', ""),
         array('!x', 'php_false', '!x', 'cas_false', '', 'badpostfixop', ""),
         array('x_1', 'php_true', 'x_1', 'cas_true', '{x}_{1}', '', ""),
@@ -429,10 +431,6 @@ class stack_inputvalidation_test_data {
         array('mod(x,y)', 'php_true', 'mod(x,y)', 'cas_true', 'x \rm{mod} y', '', ""),
         array('binomial(n,m)', 'php_true', 'binomial(n,m)', 'cas_true', '{{n}\choose{m}}', '', ""),
         array('binomial(8,4)', 'php_true', 'binomial(8,4)', 'cas_true', '{{8}\choose{4}}', '', ""),
-//        array('pdf_binomial(n,m,p)', 'php_true', 'pdf_binomial(n,m,p)', 'cas_true',
-//            '{{m}\choose{n}}\cdot p^{n}\cdot {\left(1-p\right)}^{m-n}', '', ""),
-//        array('pdf_binomial(2,6,0.07)', 'php_true', 'pdf_binomial(6,2,0.07)', 'cas_true',
-//            '{{6}\choose{2}}\cdot 0.07^{2}\cdot {\left(1-0.07\right)}^{6-2}', '', ""),
         array('perm(x,y)', 'php_false', '', '', '', 'forbiddenFunction', ""),
         array('comb(x,y)', 'php_false', '', '', '', 'forbiddenFunction', ""),
         array('switch(x,a,y,b,c)', 'php_false', '', '', '', 'forbiddenFunction', ""),
@@ -615,7 +613,7 @@ class stack_inputvalidation_test_data {
         $filterstoapply[] = '990_no_fixing_spaces';
 
         $cs = stack_ast_container::make_from_student_source($test->rawstring, '', new stack_cas_security(), $filterstoapply);
-        $cs->set_cas_validation_context('ans1', true, '', $test->validationmethod, false);
+        $cs->set_cas_validation_context('ans1', true, '', $test->validationmethod, false, 0);
 
         $phpvalid     = $cs->get_valid();
         $phpcasstring = $cs->get_inputform();
@@ -672,7 +670,8 @@ class stack_inputvalidation_test_data {
             }
             if ($casdisplay != $test->display) {
                 $passed = false;
-                $errors .= ' ' . stack_string('displaymismatch') . html_writer::tag('pre', s($test->display)) . html_writer::tag('pre', s($casdisplay));
+                $errors .= ' ' . stack_string('displaymismatch') . html_writer::tag('pre', s($test->display)) .
+                    html_writer::tag('pre', s($casdisplay));
             }
         }
 

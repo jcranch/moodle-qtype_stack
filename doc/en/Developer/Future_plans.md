@@ -4,7 +4,7 @@ How to report bugs and make suggestions is described on the [community](../About
 
 Note, where the feature is listed as "(done)" means we have prototype code in the testing phase.
 
-## Features to add for STACK 4.4 or later ##
+## Features to add for STACK 4.5 or later ##
 
 ### Units inputs ###
 
@@ -17,7 +17,6 @@ Note, where the feature is listed as "(done)" means we have prototype code in th
 
 ### Inputs ###
 
-* (Parser can do this)  Add support for coordinates, so students can type in (x,y).  This should be converted internally to a list.
 * Add new input types
  1. DragMath (actually, probably use JavaScript from NUMBAS instead here, or the MathDox editor).
  2. Sliders - do this via JSXGraph.
@@ -48,6 +47,12 @@ Note, where the feature is listed as "(done)" means we have prototype code in th
 * Decimal separator, both input and output.
 * Check CAS/maxima literature on -inf=minf.
 
+* add in support for pdf_binomial, in particular add in these test cases to `studentinput_test.php`.
+
+        array('pdf_binomial(n,m,p)', 'php_true', 'pdf_binomial(n,m,p)', 'cas_true', '{{m}\choose{n}}\cdot p^{n}\cdot {\left(1-p\right)}^{m-n}', '', ""),
+        array('pdf_binomial(2,6,0.07)', 'php_true', 'pdf_binomial(6,2,0.07)', 'cas_true', '{{6}\choose{2}}\cdot 0.07^{2}\cdot {\left(1-0.07\right)}^{6-2}', '', ""),
+
+
 * (Done in Stateful) Make the mark and penalty fields accept arbitrary maxima statements.
 * (Done in Stateful) Introduce a variable so the maxima code "knows the attempt number". [Note to self: check how this changes reporting].  This is now being done with the "state" code in the abacus branch.
 * (Done in Stateful) Make the PRT Score element CAS, so that a value calculated in the "Feedback variables" could be included here.
@@ -56,8 +61,6 @@ Note, where the feature is listed as "(done)" means we have prototype code in th
 
 * Answer tests should be like inputs. We should return an answer test object, not a controller object.
 * at->get_at_mark() really ought to be at->matches(), since that is how it is used.
-* Use `defstruct` in Maxima for the return objects. (Note to self: `@` is the element access operator).
-* Investigate how a whole PRT might make only one CAS call.
 
 ## Features that might be attempted in the future - possible self-contained projects
 
@@ -71,19 +74,6 @@ Note, where the feature is listed as "(done)" means we have prototype code in th
 * Auto deploy.  E.g. if the first variable in the question variables is a single a:rand(n), then loop a=0..(n-1).
 * When validating the editing form, also evaluate the Maxima code in the PRTs, using the teacher's model answers.
 * (Done in Stateful) You cannot use one PRT node to guard the evaluation of another, for example Node 1 check x = 0, and only if that is false, Node 2 do 1 / x. We need to change how PRTs do CAS evaluation.
-
-### Authoring and execution of PRTs
-
-Can we write the whole PRT as Maxima code?  YES! see stateful! This seems like an attractive option, but there are some serious problems which make it probably impractical.
-
-1. Error trapping.  Currently, the arguments each answer test are evaluated with Maxima's `errcatch` command independently before the answer test is executed.  This helps track down the source of any error. If we write a single Maxima command for the PRT (not just one node) then it is likely that error trapping will become much more difficult.
-2. Not all answer tests are implemented in pure Maxima!  Answer tests are accessed through this class `moodle-qtype_stack/stack/answertest/controller.class.php` only those which make use of `stack_answertest_general_cas` are pure maxima.  Many of the numerical tests use PHP code to infer the number of significant figures.  While we could (perhaps) rewrite some of these in Maxima, they were written in PHP as it is significantly easier to do so.
-
-So, while it is attractive to ask for the PRT as a single Maxima function it is currently difficult to do so.
-
-The current plan is to produce a solid YAML markup language for PRTs.
-
-Other (past ideas) were http://zaach.github.com/jison/ or https://github.com/hafriedlander/php-peg.
 
 ## "Reveal block"
 
@@ -143,4 +133,3 @@ Basic reports now work.
 
 * Really ensure "attempts" list those with meaningful histories.  I.e. if possible filter out navigation to and from the page etc.
 * Add better maxima support functions for off-line analysis.
-* A fully maxima-based representation of the PRT?
