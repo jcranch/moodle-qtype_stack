@@ -636,9 +636,13 @@ class stack_potentialresponse_tree_lite {
         }
 
         // Those were the branch neutral parts, now the branches.
+        if ($node->trueanswernote == '{#an#}' || $node->trueanswernote == '{@an@}') {
+         $trueanswernote = 'an';
+        } else {
+         $trueanswernote = stack_utils::php_string_to_maxima_string($node->trueanswernote);
+        }
         $body .= 'if %_TMP[2] then (';
-        $body .= '%PRT_EXIT_NOTE:append(%PRT_EXIT_NOTE, [' .
-            stack_utils::php_string_to_maxima_string($node->trueanswernote) . '])';
+        $body .= '%PRT_EXIT_NOTE:append(%PRT_EXIT_NOTE, [' . $trueanswernote . '])';
         // The true branch.
         // Even if the branch is formative we do calculate score for analysis.
         $s = $node->truescore;
@@ -726,8 +730,13 @@ class stack_potentialresponse_tree_lite {
         }
 
         $body .= ') else (';
-        $body .= '%PRT_EXIT_NOTE:append(%PRT_EXIT_NOTE, [' .
-            stack_utils::php_string_to_maxima_string($node->falseanswernote) . '])';
+
+        if ($node->falseanswernote == '{#an#}' || $node->falseanswernote == '{@an@}') {
+         $falseanswernote = 'an';
+        } else {
+         $falseanswernote = stack_utils::php_string_to_maxima_string($node->falseanswernote);
+        }
+        $body .= '%PRT_EXIT_NOTE:append(%PRT_EXIT_NOTE, [' . $falseanswernote . '])';
         // The false branch.
         $s = $node->falsescore;
         if ($s === null || trim($s) == '') {
