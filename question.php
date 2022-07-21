@@ -904,9 +904,10 @@ class qtype_stack_question extends question_graded_automatically_with_countback
                 continue;
             }
 
-	    $n = count($results->answernotes);
-	    $note = $n ? $results->answernotes[$n-1] : '';
-	    
+            $note = '';
+            $notes = $results->get_answernotes();
+            if ($notes) { $note = $notes[count($notes) - 1]; }
+            
             $partresults[$index] = new qbehaviour_adaptivemultipart_part_result(
                     $index, $results->get_score(), $results->get_penalty(), false, $note);
         }
