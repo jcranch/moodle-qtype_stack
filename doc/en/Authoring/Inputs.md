@@ -62,7 +62,7 @@ See the specific documentation for more information:  [Numerical input](Numerica
 
 #### Scientific units ####
 
-The support for scientific units includes an input type which enables teachers to check units as valid/invalid. See the separate documentation for [units](Units.md).
+The support for scientific units includes an input type which enables teachers to check units as valid/invalid. See the separate documentation for [units](../Topics/Units.md).
 
 #### Matrix ####
 
@@ -78,8 +78,7 @@ We cannot use the `EMPTYANSWER` tag for the teacher's answer with the matrix inp
 
 #### Text area ####
 
-Enter algebraic expressions on multiple lines.  STACK passes the result to [Maxima](../CAS/Maxima.md) as a list.
-Note, the teacher's answer and any syntax hint must be a list!  If you just pass in an expression strange behaviour may result.
+This input allows the user to type in multiple lines, where each line must be a valid algebraic expression.  STACK passes the result to [Maxima](../CAS/Maxima.md) as a list. Note, the teacher's answer and any syntax hint must be a list, of valid Maxima exprssions!  If you just pass in an expression strange behaviour may result.
 
 #### Equivalence reasoning input ####
 
@@ -112,7 +111,7 @@ This input is a text area into which students may type whatever they choose.  It
 This input type can be used for
 
 1. surveys;
-2. answers which are not automatically marked, contributing to [semi-automatic marking](Semi-automatic_Marking.md).
+2. answers which are not automatically marked, contributing to [semi-automatic marking](../Moodle/Semi-automatic_Marking.md).
 
 The notes input has a special extra option `manualgraded`, and the default option value is `manualgraded:false`.  If you specify `manualgraded:true` then the _whole STACK quesion_ will require manual grading!
 
@@ -251,11 +250,11 @@ The "compact" version removes most of the styling.  This is needed when the answ
 
 Users are increasingly using inputs to store _state_, which makes no sense for a user to see.  For example, when using [JSXGraph](JSXGraph.md) users transfer the configuration of the diagram into an input via JavaScript.  In many situations, it makes no sense for the student to see anything about this input.  The validation can be switched off with the regular "show validation" option, the input box itself can be hidden with JavaScript/CSS.  Putting `hideanswer` in the extra options stops displaying the "teacher's answer", e.g. at the end of the process.
 
-Do not use this option in questions in place of the normal quiz settings.  For this reason it is only supported in the string input type.
+Do not use this option in questions in place of the normal quiz settings.
 
 ### Extra option: allowempty ###
 
-Normally a _blank_, i.e. empty, answer has a special status and are not considered "valid".  Hence, a PRT relying on an input left blank will not be traversed.  Answers consisting only of whitespace are also considered as empty.  The extra option `allowempty` allows the input to be empty.  Internally an empty answer will be replaced by the Maxima f `EMPTYANSWER`.  Internally it is essential that the variable name of the input, (e.g. `ans1`) is really assigned a specific value. The teacher will need to deal with `EMPTYANSWER` tags in the PRT.
+Normally a _blank_, i.e. empty, answer has a special status and are not considered "valid".  Hence, a PRT relying on an input left blank will not be traversed.  Answers consisting only of whitespace are also considered as empty.  The extra option `allowempty` allows the input to be empty.  Internally an empty answer will be replaced by the Maxima atom `EMPTYANSWER`.  Internally it is essential that the variable name of the input, (e.g. `ans1`) is really assigned a specific value. The teacher will need to deal with `EMPTYANSWER` tags in the PRT.
 
 We strongly recommend (with many years of experience) that teachers do not use this option without very careful thought!
 
@@ -330,6 +329,15 @@ So, to check both set `checkvars:3`.
 
 The numerical argument provides potential for future-proofing features (e.g. case sensitivity).
 
+### Extra option: validator ###
+
+This allows an input to add additional bespoke validation, based on a function defined by the question author.  For example, you can define a function which checks if the student's answer is a _list of exactly three floating point numbers_.  See the [validator documetation](../CAS/Validator.md) for more details.
+
+Writing bespoke validators is an advanced feature, but offers two significant benefits.
+
+1. Students are less likely to be penalised on a technicality, especially in high-stakes situations;
+2. Potential response tree authoring becomes much easier and more reliable because the validation acts as a "guard clause" only allowing correctly structured information through to the PRT.  This means type-checking need not be done in the PRT before assessment.
+
 ## Extra options ##
 
 In the future we are likely to add additional functionality via the _extra options_ fields.  This is because the form-based support becomes ever more complex, intimidating and difficult to navigate.
@@ -386,6 +394,7 @@ min/max sf/dp     |  .  |  Y  |  Y    |   .    |   .   |   .   |   .  |  .  |   
 `align`        |  Y  |  Y  |  Y    |   .    |   .   |   .   |   .  |  .  |    .     |   .   |   .    |   .  
 `nounits`      |  Y  |  Y  |  Y    |   Y    |   Y   |   Y   |   Y  |  .  |    .     |   Y   |   .    |   .  
 `checkvars`    |  Y  |  .  |  .    |   Y    |   .   |   .   |   .  |  .  |    .     |   Y   |   .    |   .  
+`validator`    |  Y  |  Y  |  Y    |   Y    |   .   |   .   |   .  |  .  |    .     |   .   |   Y    |   .  
 
 For documentation about the various options not documented on this page look at the pages for the specific inputs in which each option is used.
 

@@ -58,7 +58,7 @@ class maxima_parser_utils {
 
         $ast = self::do_parse($code, $parseoptions, $cachekey);
 
-        if ($cachekey) {
+        if ($cachekey && mb_strpos($code, 'stack_include') === false) {
             $cache[$cachekey] = clone $ast;
         }
 
@@ -77,7 +77,7 @@ class maxima_parser_utils {
         $muccachelimit = get_config('qtype_stack', 'parsercacheinputlength');
 
         $cache = null;
-        if ($cachekey && $muccachelimit && strlen($code) >= $muccachelimit) {
+        if ($cachekey && $muccachelimit && strlen($code) >= $muccachelimit && mb_strpos($code, 'stack_include') === false) {
             $cache = cache::make('qtype_stack', 'parsercache');
             $ast = $cache->get($cachekey);
             if ($ast) {
@@ -88,7 +88,7 @@ class maxima_parser_utils {
         $parser = new MP_Parser();
         $ast = $parser->parse($code, $parseoptions);
 
-        if ($cache) {
+        if ($cache && mb_strpos($code, 'stack_include') === false) {
             $cache->set($cachekey, $ast);
         }
         return $ast;
@@ -179,6 +179,14 @@ class maxima_parser_utils {
             if (!$incomment) {
                 $r .= $c;
             }
+        }
+        // If we have a hanging comment we need return the original
+        // string so that the full parser can trigger correct errors.
+        // Note that this means that we don't remove any comments if
+        // even one of them is faulty, but that should not matter as
+        // things will break with syntax errors no matter what we do.
+        if ($incomment) {
+            return $src;
         }
 
         return $r;
@@ -489,7 +497,7 @@ class maxima_parser_utils {
         if ($targetedkeys !== null && !is_array($targetedkeys)) {
             // When you want to replace all but the one.
             $tmp = array_keys($substs);
-            $i = array_search($targetedkeys, $tmp);
+            $i = array_search($targetedkeys, $tmp, true);
             if ($i !== false) {
                 unset($tmp[$i]);
             }

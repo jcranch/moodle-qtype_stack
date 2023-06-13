@@ -426,6 +426,27 @@
              l nil))))))
 
 ;; *************************************************************************************************
+;; Added 4 May 2023.
+;; Print all brackets with simp:false;
+
+;; This is WIP for printing brackets in (a+b)+c.  Creates lots of other problems with unary minus.
+;; (defun tex (x l r lop rop)
+;;   ;; x is the expression of interest; l is the list of strings to its
+;;   ;; left, r to its right. lop and rop are the operators on the left
+;;   ;; and right of x in the tree, and will determine if parens must
+;;   ;; be inserted
+;;   (setq x (nformat x))
+;;   (cond ((atom x) (tex-atom x l r))
+;;       ((or (<= (tex-lbp (caar x)) (tex-rbp lop)) (>= (tex-lbp rop) (tex-rbp
+;;           (caar x))))
+;;       (tex-paren x l r))
+;;       ;; special check needed because macsyma notates arrays peculiarly
+;;       ((member 'array (cdar x) :test #'eq) (tex-array x l r))
+;;       ;; dispatch for object-oriented tex-ifiying
+;;       ((get (caar x) 'tex) (funcall (get (caar x) 'tex) x l r))
+;;       (t (tex-function x l r nil))))
+
+;; *************************************************************************************************
 ;; Added 27 June 2020.
 ;; Localise some Maxmia-generated strings
 
@@ -441,7 +462,8 @@
 
 ;; *************************************************************************************************
 ;; Added 30 May 2022.
-;; Allow Maxima to interigate the texword database directly.
+;; Allow Maxima to interigate the texword database directly, for words or function names.
 ;; Copied directly from tex-atom.
 (defmfun $get_texword (x) (or (get x 'texword) (get (get x 'reversealias) 'texword)))
 
+(defmfun $get_texsym (x) (car (or (get x 'texsym) (get x 'strsym) (get x 'dissym) (stripdollar x))))

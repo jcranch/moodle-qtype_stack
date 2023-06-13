@@ -37,9 +37,9 @@ class castext2_parser_utils {
     // Does the whole compile process.
     // Basically when compiling we need to know if Markdown is in use and
     // some blocks may need details. That is why we have those parameters.
-    public static function compile(string $castext, $format=null, $options=null): string {
+    public static function compile(string $castext, $format=null, $options=null): MP_Node {
         if ($castext === '' || $castext === null) {
-            return '""';
+            return new MP_String('');
         }
 
         $ast = self::parse($castext, $format);
@@ -178,6 +178,10 @@ class castext2_parser_utils {
                     case 'moodleformat':
                     case 'htmlformat':
                     case 'jsxgraph':
+                    case 'iframe':
+                    case 'style':
+                    case 'body':
+                    case 'script':
                         $fmt = self::RAWFORMAT;
                         break;
                     case 'demarkdown':

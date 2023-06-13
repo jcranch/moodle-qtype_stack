@@ -93,10 +93,11 @@ class stack_equiv_input extends stack_input {
         }
 
         $attributes = array(
-            'name' => $fieldname,
-            'id'   => $fieldname,
-            'rows' => max(3, count($rows) + 1),
-            'cols' => min($boxwidth, 50),
+            'class' => 'equivinput',
+            'name'  => $fieldname,
+            'id'    => $fieldname,
+            'rows'  => max(3, count($rows) + 1),
+            'cols'  => min($boxwidth, 50),
             'autocapitalize' => 'none',
             'spellcheck'     => 'false',
         );
@@ -265,7 +266,7 @@ class stack_equiv_input extends stack_input {
      * @return string any error messages describing validation failures. An empty
      *      string if the input is valid - at least according to this test.
      */
-    protected function validation_display($answer, $lvars, $caslines, $additionalvars, $valid, $errors) {
+    protected function validation_display($answer, $lvars, $caslines, $additionalvars, $valid, $errors, $castextprocessor) {
 
         if ($this->extraoptions['firstline']) {
             $foundfirstline = false;
@@ -468,7 +469,7 @@ class stack_equiv_input extends stack_input {
                     array('class' => 'alert alert-danger stackinputerror'));
         }
 
-        if ($this->get_parameter('showValidation', 1) == 1 && !($state->lvars === '' or $state->lvars === '[]')) {
+        if ($this->get_parameter('showValidation', 1) == 1 && !($state->lvars === '' || $state->lvars === '[]')) {
             $feedback .= $this->tag_listofvariables($state->lvars);
         }
 

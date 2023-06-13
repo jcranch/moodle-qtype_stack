@@ -151,6 +151,28 @@ recurse_predp(ex, pr):= block(
   pr(ex) or apply("or", map(lambda([ex2], recurse_predp(ex2, pr)), args(ex)))
 );
 
+/* ********************************************** */
+/* Functions for selecting parts of an expression */
+/* ********************************************** */
+
+/* This function selects, and displays, parts of an expression for which the predicate is true. */
+select(p1, ex) := block(
+  if p1(ex) then return(disp_select(ex)),
+  if atom(ex) then return(ex),
+  apply(op(ex), map(lambda([ex2], select(p1, ex2)), args(ex)))
+)$
+
+/* This function applys the function f1 to parts already selected by the function select. */
+select_apply([ex1]) := block([f1, ex, s1],
+  f1:first(ex1),
+  ex:second(ex1),
+  s1:true,
+  if ev(is(length(ex1)>2), simp) then s1:third(ex1),
+  if atom(ex) then return(ex),
+  if safe_op(ex)="disp_select" then if s1 then return(f1(first(args(ex)))) else return(f1(ex)),
+  apply(op(ex), map(lambda([ex2], select_apply(f1, ex2, s1)), args(ex)))
+)$
+
 /* ********************************** */
 /* General list and utility functions */
 /* ********************************** */
@@ -159,16 +181,10 @@ recurse_predp(ex, pr):= block(
 element_listp(ex, l) := any_listp(lambda([ex2], is(ex2=ex)), l)$
 
 /* all_listp(p,l) true if all elements of l satisfy p. */
-all_listp(p, l) := block([ret],
-  if listp(l) then ret:apply("and", maplist(p, l)) else ret:"fail",
-  return(ret)
-)$
+all_listp(p, l) := if listp(l) then apply("and", maplist(p, l)) else error("all_listp expects its argument to be a list.")$
 
 /* any_listp(p,l) true if all elements of l satisfy p. */
-any_listp(p, l) := block([ret],
-  if listp(l) then ret:apply("or", maplist(p, l)) else ret:"fail",
-  return(ret)
-)$
+any_listp(p, l) := if listp(l) then apply("or", maplist(p, l)) else error("any_listp expects its argument to be a list.")$
 
 /* Returns true iff a and b are lists (not necessarily same length) with one or more common elements, false o/w. */
 listsoverlap(a, b) := not(emptyp(intersection(setify(a), setify(b))))$
@@ -247,7 +263,6 @@ ntuplep(ex):= if safe_op(ex)="ntuple" then true else false$
 
 /* An ellipsis */
 texput(dotdotdot, "\\ldots")$
-
 
 /* ********************************** */
 /* Type predicates                    */
@@ -447,6 +462,35 @@ complex_exponentialp(ex):=block([ex2],
     return(false)
 )$
 
+polarform_simp(ex) := block([%_r, %_theta, %_pf, simp],
+    /* We can't return a meaningful value for arg(ex) so we just return 0. */
+    if is(ev(ex, simp)=0) then return(0),
+    /* It is a design choice to return a positive real number, rather than r*%e^0, or r*%e^(%i*0). */
+    if ev(real_numberp(ex) and ex>0, simp) then return(ex),
+    simp:false,
+    %_pf:ev(polarform(ex), simp),
+    /* Purely imaginary numbers somtimes return just %e^{...} */
+    if is(part(%_pf,1)=%e) then return(%_pf),
+    /* We really do have something in the form r*%e^theta to pick apart. */
+    %_pf:args(%_pf),
+    %_r:first(%_pf),
+    %_theta:part(second(%_pf),2),
+    ev(%_r, simp) * %e^(ev(%i*imagpart(%_theta), simp))
+)$
+/* 
+  polarform_simp(1+%i);
+  polarform_simp(0);
+  polarform_simp(1);
+  polarform_simp(-2);
+  polarform_simp(%i);
+  polarform_simp(2*%i);
+  polarform_simp(-%i);
+  polarform_simp(-2*%i);
+  polarform_simp(sqrt(3)+%i*sqrt(3));
+  polarform_simp(1/sqrt(2)*(-1+%i));
+*/
+
+
 /* Decides if an expression is precicely of the form a*10^n, where a is an integer, or a float, and n is an integer. */
 scientific_notationp(ex) := block([tn],
   if not(safe_op(ex)="*") then return(false),
@@ -521,7 +565,7 @@ anyfloat(l) := block([ret:false],
  return(ret) )$
 
 /* Decides if any floats are in the expression. */
-anyfloatex(ex) := block([partswitch,ret,kloop],
+anyfloatex(ex) := block([partswitch, end, ret, kloop],
   ret:false,
   ex:ev(ex,simp),
   if floatnump(ex) then return(true),
@@ -592,6 +636,16 @@ remove_disp_complex(ex1, ex2) := ev(ex1, null=0)+ev(ex2, null=1)*%i$
 /* This function is a display-level way to ensure brackets get displayed. */
 texdisp_parens(ex) := sconcat("\\left( ", tex1(first(args(ex))), " \\right)")$
 texput(disp_parens, texdisp_parens)$
+
+remove_disp_parens(ex) := ev(ex, disp_parens=lambda([ex2], ex2))$
+
+/* This function is a display-level way to select part of an expression. */
+texdisp_select(ex) := sconcat("\\color{red}{\\underline{", tex1(first(args(ex))), "}}")$
+texput(disp_select, texdisp_select)$
+
+/* A single function to remove display forms.  Used by answer tests to "clean" an expression. */
+
+remove_disp(ex) := ev(ex, disp_parens=lambda([ex2], ex2), disp_select=lambda([ex2], ex2), disp_complex=remove_disp_complex)$
 
 
 /* This function is designed for displaying decimal places. It is also useful for currency. */
@@ -809,7 +863,7 @@ recursemod(ex, n) := block(
 algebraic_equivalence_zero(ex) := algebraic_equivalence(ex, 0)$
 
 algebraic_equivalence(SA, SB) :=
-    block([keepfloat, trigexpand, logexpand, ex, vi],
+    block([keepfloat, trigexpand, logexpand, sumsplitfact, ex, vi],
 
     if SA=SB then return(true),
     /* Remove +- if we can early. */
@@ -821,6 +875,7 @@ algebraic_equivalence(SA, SB) :=
     trigexpand:false,
     logexpand:super,
     keepfloat:true,
+    sumsplitfact:false,
     /* In some cases we just go inside the function one level. */
     if (safe_op(SA)=safe_op(SB) and (safe_op(SA)="sqrt" or safe_op(SA)="abs")) then
       (SA:first(args(SA)),

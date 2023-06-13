@@ -113,7 +113,7 @@ class ast_container_test extends qtype_stack_testcase {
             array('%o1', true, true),
             // Literal unicode character (pi) instead of name.
             array(json_decode('"\u03C0"'), true, true),
-            array(json_decode('"\u2205"'), false, false),
+            array(json_decode('"\u2205"'), true, true),
             // Non-matching brackets.
             array('(x+1', false, false),
             array('(y^2+1))', false, false),
@@ -167,12 +167,14 @@ class ast_container_test extends qtype_stack_testcase {
     }
 
     public function test_validation_unicode() {
+        // Note the error with the * in this expression.
         $casstring = stack_ast_container::make_from_student_source(json_decode('"\u212F"').'*^x', '', new stack_cas_security());
         $casstring->get_valid();
-        $this->assertEquals(stack_string('stackCas_forbiddenChar', array('char' => json_decode('"\u212F"'))) . ' ' .
-                stack_string('stackCas_useinsteadChar', array('bad' => json_decode('"\u212F"'), 'char' => 'e')),
+        $this->assertEquals('Expected "#pm#", "%not ", "\'", "\'\'", "(", "+", "+-", "-", "? ", "?", "?? ", "[", "do", ' .
+            '"for", "from", "if", "in", "next", "not ", "not", "nounnot ", "nounnot", "step", "thru", "unless", ' .
+            '"while", "{", "|", boolean, float, identifier, integer, string or whitespace but "^" found.',
             $casstring->get_errors());
-        $this->assertEquals('unicodeChar', $casstring->get_answernote());
+        $this->assertEquals('ParseError', $casstring->get_answernote());
     }
 
     public function test_validation_error() {
@@ -995,6 +997,34 @@ class ast_container_test extends qtype_stack_testcase {
         $this->assertEquals('(%_C(ntuple),ntuple((%_C(ntuple),ntuple(x,y)),a))', $at1->get_evaluationform());
         $this->assertEquals('ntuple(ntuple(x,y),a)', $at1->get_inputform());
         $this->assertEquals('((x,y),a)', $at1->get_inputform(true, 0, true));
+
+    }
+
+    public function test_identify_simplification_modifications() {
+        $t1 = 'foo+bar';
+        $t1 = stack_ast_container::make_from_teacher_source($t1, '', new stack_cas_security());
+        $t1 = $t1->identify_simplification_modifications();
+        $this->assertFalse($t1['simp-accessed']);
+        $this->assertFalse($t1['simp-modified']);
+        $this->assertFalse($t1['out-of-ev-write']);
+        $this->assertEquals($t1['last-seen'], null);
+
+        $t2 = '3/9,simp=false';
+        $t2 = stack_ast_container::make_from_teacher_source($t2, '', new stack_cas_security());
+        $t2 = $t2->identify_simplification_modifications();
+        $this->assertTrue($t2['simp-accessed']);
+        $this->assertTrue($t2['simp-modified']);
+        $this->assertFalse($t2['out-of-ev-write']);
+        $this->assertEquals($t2['last-seen'], false);
+
+        // Issue #849.
+        $t3 = '(simp:false,3/9)';
+        $t3 = stack_ast_container::make_from_teacher_source($t3, '', new stack_cas_security());
+        $t3 = $t3->identify_simplification_modifications();
+        $this->assertTrue($t3['simp-accessed'], "a");
+        $this->assertTrue($t3['simp-modified'], "b");
+        $this->assertTrue($t3['out-of-ev-write'], "c");
+        $this->assertEquals($t3['last-seen'], false);
 
     }
 }

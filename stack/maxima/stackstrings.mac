@@ -63,14 +63,14 @@ stackjson_parse(json) := block([r,tmp,tokens,mode,i,lastslash,c,starts,nt,k,v,dm
  tmp:strim(sconcat(ascii(32),ascii(9),ascii(10),ascii(11),ascii(12),ascii(13)),json),
  if is(tmp="") then return(und),
 
- /* easy ones */
+ /* Easy ones. */
  if is(tmp="true") then return(true),
  if is(tmp="false") then return(false),
  if is(tmp="null") then return(und),
  if is(tmp="[]") then return([]),
  if is(tmp="{}") then return(["stack_map"]),
 
- /* Not easy, do some tokenising */
+ /* Not easy, do some tokenising. */
  mode:"raw", /* In a string or not, maybe number */
  i:0,
  tokens:[],
@@ -234,12 +234,10 @@ stackjson_stringify(obj) := block([tmp,r,l],
 
 
 /**
- * Special tools for dealing with CASText2, absolutely no use
- * if you are not running a system with CASText2.
+ * Special tools for dealing with CASText2.
  *
- * Even if you have CASText2 enabled system these tools are very
- * advanced and probably not for a novice author. Essenttially,
- * these are useful if one generates CASText2 values inside
+ * These tools are very advanced and probably not for a novice author.
+ * Essentially, these are useful if one generates CASText2 values inside
  * keyval-fields and/or stores them into the state in Stateful.
  * The only real use for a raw CASText2 value is to be outputted
  * by the castext-block within castext itself.
@@ -262,8 +260,9 @@ castext_simplify(ct2) := block([_r,_i,_t,_redo],
   if is(ct2[1]="%root") then _i:2,
   /* We especially want to try to simplify jsxgraph-block content. 
    * It is likely to be highly fragmented with plenty of injections.
+   * That block now maps to the `iframe` block.
    */
-  if is(ct2[1]="jsxgraph") then (_i:3, _r: append(_r,[castext_simplify(ct2[3])])),
+  if is(ct2[1]="iframe") then (_i:3, _r: append(_r,[castext_simplify(ct2[3])])),
   if is(_i>0) then (
     if listp(last(_r)) and is(last(_r)[1]="%root") then (
       _redo: true,
@@ -317,8 +316,8 @@ return(bool1))$
 /* STACK csv-helpper special tool for file output generation.
  * Generates a string in CSV format of a list of lists or a matrix
  * with an optional list of labels
- * Will use normal grind/string style value form output but will return string
- * values without Maxima style escapes. Special handling for pure float
+ * Will use normal grind/string style value form output but will return a castext list ["%root", ...]
+ * with values without Maxima style escapes. Special handling for pure float
  * values, with them will use `stackfltfmt` to tune display.
  * Uses "-wrapped strings when need be and picks , or ; as the separator
  * based on how many values would need to be wrapped.
@@ -397,11 +396,12 @@ stack_csv_formatter(_data, _labels) := block([_sep,simp,_out,_rowcount,_sepcount
 
  /* TODO: do we want to do padding and formatting to help reading in text-editors? */
 
- /* Now lets join everyhing up. */
- _out: maplist(lambda([_row],simplode(_row, _sep)), _out),
+ /* Now let's join everything up. */
+ _out: maplist(lambda([_row], simplode(_row, _sep)), _out),
  _out: simplode(_out,"
-")
+"),
  /* We might want to add a line change to the end. */
+ return(["%root", _out])
 )$
 
 
@@ -417,20 +417,22 @@ stack_csv_formatter(_data, _labels) := block([_sep,simp,_out,_rowcount,_sepcount
  * Basically the mode tells if we are to wrap things in math-delimiters and if we are in 
  * markdown mode.
  */
-ct2_latex(%_val, %_mode):=block([%_tmp],
+ct2_latex(%_val, %_mode, %_simp):=block([%_tmp,simp],
+ simp:false,
  %_tmp: %_val,
  /* Strings */
  if stringp(%_tmp) then (
    /* If in math-mode, i.e. not requesting wrapping wrap with braces. */
    if %_mode = "" or %_mode = "m" then %_tmp: sconcat("{", %_tmp, "}"),
    if %_mode = "m" or %_mode = "im" then %_tmp: str_to_md(%_tmp),
-   return(%_tmp)
+   return(["smlt", %_tmp])
  ) else if listp(%_tmp) and length(%_tmp) > 0 and is(%_tmp[1] = "%root") then (
    /* If we receive inline CASText then pass it through. */
    if is(length(%_tmp) = 2) then
       return(%_tmp[2]), /* Unwrap it as it does not need that wrapping anymore. Unfortunately can only do this for the single elemetn case here. */
    return(%_tmp)
  ) else (
+   simp: %_simp,
    %_tmp: stack_disp(%_tmp, ""), /* Do our own wrapping. */
    %_tmp: sconcat("{", strimr(" ", %_tmp), "}"),
    if %_mode = "i" or %_mode = "im" then %_tmp: sconcat("\\(", %_tmp, "\\)")

@@ -25,6 +25,8 @@ use stack_cas_security;
 use stack_cas_session2;
 use stack_maths;
 use stack_options;
+use stack_secure_loader;
+use stack_multilang;
 use function stack_ast_container_silent\is_int;
 
 defined('MOODLE_INTERNAL') || die();
@@ -35,6 +37,8 @@ require_once(__DIR__ . '/../stack/cas/castext2/castext2_evaluatable.class.php');
 require_once(__DIR__ . '/../stack/cas/castext2/utils.php');
 require_once(__DIR__ . '/../stack/cas/keyval.class.php');
 require_once(__DIR__ . '/../stack/cas/cassession2.class.php');
+require_once(__DIR__ . '/../stack/cas/secure_loader.class.php');
+require_once(__DIR__ . '/../lang/multilang.php');
 
 
 // Unit tests for {@link stack_cas_text}.
@@ -99,14 +103,19 @@ class castext_test extends qtype_stack_testcase {
                 array('\[{@a*b@}\]', $a1, true, '\[{x^2\cdot {\left(x+1\right)}^2}\]'),
                 array('{@', null, true, '{@'), // The new parser allwos use of this text fragemt everywhere.
                 array('{@(x^2@}', null, false, false),
-                array('{@1/0@}', null, true, '1/0'), // Do we want this to work when simp:true?
-                // If so then the compiler will need to generate separate errcatch logic for everything just in case.
-                array('\(1+{@1/0@}\)', null, true, '\(1+{1/0}\)'),
+                array('{@1/0@}', null, true,
+                    '<h3>Rendering of text content failed.</h3><ul><li>Division by zero.</li></ul>'),
+                array('\(1+{@1/0@}\)', null, true,
+                    '<h3>Rendering of text content failed.</h3><ul><li>Division by zero.</li></ul>'),
                 array('{@x^2@}', $a2, false, null),
                 array('\(\frac{@"0.10"@}{@"0.10"@}\)', null, true, '\(\frac{0.10}{0.10}\)'),
                 // This last one looks very odd.  It records a change in v4.0 where we stop supporting dollars.
                 array('$${@x^2@}$$', null, true, '$$\({x^2}\)$$'),
-        );
+                // Generate a maxima error other than division by zero.
+                array('{@matrix([a],[b]).matrix([1,2],[3,4])@}', null, true,
+                    '<h3>Rendering of text content failed.</h3><ul><li>MULTIPLYMATRICES: ' .
+                    'attempt to multiply nonconformable matrices.</li></ul>'),
+                );
 
         foreach ($cases as $case) {
             $this->basic_castext_instantiation($case[0], $case[1], $case[2], $case[3]);
@@ -159,7 +168,8 @@ class castext_test extends qtype_stack_testcase {
         $cs1->instantiate();
 
         $this->assertEquals('Division by zero.', $cs1->get_errors());
-        $this->assertEquals('1/0', $ct->get_rendered());
+        $this->assertEquals('<h3>Rendering of text content failed.</h3><ul><li>Division by zero.</li></ul>',
+            $ct->get_rendered());
         $this->assertTrue($ct->get_valid());
         $this->assertEquals('Division by zero.',
             $ct->get_errors());
@@ -273,8 +283,7 @@ class castext_test extends qtype_stack_testcase {
         $c = '[[ if test="a" ]][[ if ]]ok[[/ if ]][[/ if ]]';
         $ct = castext2_evaluatable::make_from_source($c, 'test-case');
         $this->assertFalse($ct->get_valid());
-        // TODO: better error trapping?
-        $this->assertEquals('', $ct->get_errors());
+        $this->assertEquals('If block requires a test parameter.', $ct->get_errors());
 
         $c = '[[ if test="a" ]][[else]]a[[elif test="b"]]b[[/ if ]]';
         $ct = castext2_evaluatable::make_from_source($c, 'test-case');
@@ -301,8 +310,7 @@ class castext_test extends qtype_stack_testcase {
         $c = '[[ if test="a" ]][[ if ]]ok[[/ if ]]';
         $ct = castext2_evaluatable::make_from_source($c, 'test-case');
         $this->assertFalse($ct->get_valid());
-        // TODO: better error trapping?
-        $this->assertEquals('', $ct->get_errors());
+        $this->assertEquals('If block requires a test parameter.', $ct->get_errors());
     }
 
     /**
@@ -1052,6 +1060,31 @@ class castext_test extends qtype_stack_testcase {
     /**
      * @covers \qtype_stack\stack_cas_castext2_latex
      */
+    public function test_strings_in_castext_translated() {
+        $vars = 'st:a and "!AND!"';
+        $at1 = new stack_cas_keyval($vars, null, 123);
+        $this->assertTrue($at1->get_valid());
+        $cs2 = $at1->get_session();
+
+        $at2 = castext2_evaluatable::make_from_source('{@st@}', 'test-case');
+        $this->assertTrue($at2->get_valid());
+        $cs2->add_statement($at2);
+        $cs2->instantiate();
+
+        // The !AND! string is translated.
+        $this->assertEquals('\({a\,{\mbox{ and }}\, \mbox{and}}\)', $at2->get_rendered());
+
+        $at2 = castext2_evaluatable::make_from_source('{@"!AND!"@}', 'test-case');
+        $this->assertTrue($at2->get_valid());
+        $cs2->add_statement($at2);
+        $cs2->instantiate();
+
+        $this->assertEquals('and', $at2->get_rendered());
+    }
+
+    /**
+     * @covers \qtype_stack\stack_cas_castext2_latex
+     */
     public function test_strings_only() {
         $s = '{@"This is a string"@} whereas this is empty |{@""@}|. Not quite empty |{@" "@}|.';
 
@@ -1171,6 +1204,9 @@ class castext_test extends qtype_stack_testcase {
     public function test_numerical_display_float_scientific_small() {
         // On old Maxima, you get back \(9.999999999999999e-7\).
         $this->skip_if_old_maxima('5.32.1');
+
+        // For some reason 5.41.0 returns \(9.999999999999999e-7\) too.
+        $this->skip_if_new_maxima('5.40.0');
 
         $st = 'Decimal number {@0.000001@}.';
 
@@ -1619,6 +1655,35 @@ class castext_test extends qtype_stack_testcase {
      * @covers \qtype_stack\stack_cas_castext2_latex
      * @covers \qtype_stack\stack_ast_container
      */
+    public function test_stack_simp_false_castext() {
+        // Check all the forms raised in issue #849.
+        $a2 = array('p1:1+1');
+        $s2 = array();
+        foreach ($a2 as $s) {
+            $cs = stack_ast_container::make_from_teacher_source($s, '', new stack_cas_security(), array());
+            $this->assertTrue($cs->get_valid());
+            $s2[] = $cs;
+        }
+        $cs2 = new stack_cas_session2($s2, null, 0);
+
+        $at1 = castext2_evaluatable::make_from_source('Confirm simplification is on: {@p1@}.  ' .
+            'Unsimplified {@3/9,simp=false@}, still on: {@4+5@}.  ' .
+            'Switch off {@(simp:false, 1+1)@}, still off: {@4+5@}. ' .
+            'Switch off and on: [[define simp="false" /]] {@2+3@}; [[define simp="true" /]] {@2+3@}.', 'test-case');
+        $this->assertTrue($at1->get_valid());
+        $cs2->add_statement($at1);
+        $cs2->instantiate();
+
+        $this->assertEquals('Confirm simplification is on: \({2}\).  ' .
+            'Unsimplified \({\frac{3}{9}}\), still on: \({9}\).  ' .
+            'Switch off \({1+1}\), still off: \({4+5}\). Switch off and on:  \({2+3}\);  \({5}\).',
+            $at1->get_rendered());
+    }
+
+    /**
+     * @covers \qtype_stack\stack_cas_castext2_latex
+     * @covers \qtype_stack\stack_ast_container
+     */
     public function test_stack_beta_function_arg() {
         $a2 = array('n:1932;',
                 'f(alfa):=block(x:ifactors(alfa), y:makelist(0,length(x)), ' .
@@ -1691,6 +1756,28 @@ class castext_test extends qtype_stack_testcase {
         $cs2->instantiate();
 
         $this->assertEquals('\[{\mathrm{i}\cdot b+a}\]', $at2->get_rendered());
+    }
+
+    /**
+     * @covers \qtype_stack\stack_cas_castext2_latex
+     * @covers \qtype_stack\stack_cas_keyval
+     */
+    public function test_display_polarform() {
+        $options = new stack_options();
+        $options->set_option('simplify', false);
+
+        $vars = "p0:polarform_simp(%i+1);";
+        $at1 = new stack_cas_keyval($vars, $options, 123);
+        $this->assertTrue($at1->get_valid());
+
+        $cs2 = $at1->get_session();
+        $at2 = castext2_evaluatable::make_from_source('\[{@p0@}\]', 'test-case');
+        $this->assertTrue($at2->get_valid());
+        $cs2->add_statement($at2);
+        $cs2->instantiate();
+
+        $this->assertEquals('\[{\sqrt{2}\cdot e^{\frac{\mathrm{i}\cdot \pi}{4}}}\]',
+            $at2->get_rendered());
     }
 
     /**
@@ -1853,5 +1940,223 @@ class castext_test extends qtype_stack_testcase {
         $cs2->instantiate();
 
         $this->assertEquals('\[ {\left[\begin{array}{c} 0 \\\\ 0 \\\\ 0 \\\\ 0 \end{array}\right]}.\]', $at2->get_rendered());
+    }
+
+    /**
+     * @covers \qtype_stack\stack_cas_castext2_latex
+     * @covers \qtype_stack\stack_cas_keyval
+     */
+    public function test_texput_complex_function() {
+        $vars = 'texput(u,lambda([ex],if length(ex)<4 then return("\\bigcup_{?=?}^{?} ? ") else' .
+            'sconcat("\\bigcup_{" ,tex1(second(ex)), " = ", tex1(third(ex)), "}^{", tex1(fourth(ex)), ' .
+            '"} ", tex1(first(ex)))));';
+        $at1 = new stack_cas_keyval($vars, null, 123);
+        $this->assertTrue($at1->get_valid());
+
+        $cs2 = $at1->get_session();
+        $at2 = castext2_evaluatable::make_from_source('{@u(A_k,k,1,inf)@}', 'test-case');
+        $this->assertTrue($at2->get_valid());
+        $cs2->add_statement($at2);
+        $cs2->instantiate();
+
+        $this->assertEquals('\({bigcup_{k = 1}^{\infty } {A}_{k}}\)', $at2->get_rendered());
+    }
+
+    /**
+     * @covers \qtype_stack\stack_cas_castext2_latex
+     * @covers \qtype_stack\stack_cas_keyval
+     */
+    public function test_display_tree() {
+        $options = new stack_options();
+        $options->set_option('simplify', false);
+
+        $vars = "p1:x=a nounor b;\np2:x=(a nounor b);";
+        $at1 = new stack_cas_keyval($vars, $options, 123);
+        $this->assertTrue($at1->get_valid());
+        $cs2 = $at1->get_session();
+        $at2 = castext2_evaluatable::make_from_source('{@p1@}: {@disptree(p1)@} <br/> {@p2@}: {@disptree(p2)@}', 'test-case');
+        $this->assertTrue($at2->get_valid());
+        $cs2->add_statement($at2);
+        $cs2->instantiate();
+        $this->assertEquals("\({x=a\,{\mbox{ or }}\, b}\): <ul class='tree'><li><span class='op'>\(\,{\mbox{ or }}\, \)" .
+            "</span><ul><li><code>=</code><ul><li><span class='atom'>\(x\)</span></li><li><span class='atom'>\(a\)</span>" .
+            "</li></ul></li><li><span class='atom'>\(b\)</span></li></ul></li></ul> <br/> " .
+            "\({x=\left(a\,{\mbox{ or }}\, b\\right)}\): <ul class='tree'><li><code>=</code><ul><li><span class='atom'>" .
+            "\(x\)</span></li><li><span class='op'>\(\,{\mbox{ or }}\, \)</span><ul><li><span class='atom'>\(a\)</span>" .
+            "</li><li><span class='atom'>\(b\)</span></li></ul></li></ul></li></ul>", $at2->get_rendered());
+
+        // An example needing some bespoke style in the output.
+        $vars = "p1:1+'diff(sin(x*y),x,2);";
+        $at1 = new stack_cas_keyval($vars, $options, 123);
+        $this->assertTrue($at1->get_valid());
+        $cs2 = $at1->get_session();
+        $at2 = castext2_evaluatable::make_from_source('{@p1@}: {@disptree(p1)@}', 'test-case');
+        $this->assertTrue($at2->get_valid());
+        $cs2->add_statement($at2);
+        $cs2->instantiate();
+        $this->assertEquals("\({1+\left(\\frac{\mathrm{d}^2}{\mathrm{d} x^2} \sin \left( x\cdot y \\right)\\right)}\): " .
+            "<ul class='tree'><li><code>+</code><ul><li><span class='atom'>\(1\)</span></li><li><span class='op'>" .
+            "\(\\frac{\mathrm{d}^2 }{\mathrm{d} x^2} \)</span><ul><li><code>sin</code><ul><li><code>*</code><ul><li>" .
+            "<span class='atom'>\(x\)</span></li><li><span class='atom'>\(y\)</span></li></ul></li></ul></li></ul></li>" .
+            "</ul></li></ul>", $at2->get_rendered());
+
+        $at2 = castext2_evaluatable::make_from_source('{@disptree(a+-gamma(x))@}', 'test-case');
+        $this->assertTrue($at2->get_valid());
+        $cs2->add_statement($at2);
+        $cs2->instantiate();
+        $this->assertEquals("<ul class='tree'><li><span class='op'>\({ \pm }\)</span><ul><li><span class='atom'>\(a\)" .
+            "</span></li><li><span class='op'>\(\Gamma\)</span><ul><li><span class='atom'>\(x\)</span></li></ul></li>" .
+            "</ul></li></ul>", $at2->get_rendered());
+
+        $at2 = castext2_evaluatable::make_from_source('{@disptree(sqrt(x))@}', 'test-case');
+        $this->assertTrue($at2->get_valid());
+        $cs2->add_statement($at2);
+        $cs2->instantiate();
+        $this->assertEquals("<ul class='tree'><li><span class='op'>\(\sqrt{}\)</span><ul><li>" .
+            "<span class='atom'>\(x\)</span></li></ul></li></ul>", $at2->get_rendered());
+
+        $at2 = castext2_evaluatable::make_from_source("{@disptree('limit(1/(x+1),x,0))@}", 'test-case');
+        $this->assertTrue($at2->get_valid());
+        $cs2->add_statement($at2);
+        $cs2->instantiate();
+        $this->assertEquals("<ul class='tree'><li><span class='op'>\(\lim_{x\\rightarrow{0}} \cdots \)</span><ul>" .
+            "<li><code>/</code><ul><li><span class='atom'>\(1\)</span></li><li><code>+</code><ul>" .
+            "<li><span class='atom'>\(x\)</span></li><li><span class='atom'>\(1\)</span></li></ul></li></ul>" .
+            "</li></ul></li></ul>", $at2->get_rendered());
+
+        $at2 = castext2_evaluatable::make_from_source("{@disptree(2*matrix([a,b],[c,d]))@}", 'test-case');
+        $this->assertTrue($at2->get_valid());
+        $cs2->add_statement($at2);
+        $cs2->instantiate();
+        $this->assertEquals("<ul class='tree'><li><code>*</code><ul><li><span class='atom'>\(2\)</span></li>" .
+            "<li><span class='atom'>\(\left[\begin{array}{cc} a & b \\\\ c & d \\end{array}\\right]\)</span></li>" .
+            "</ul></li></ul>", $at2->get_rendered());
+    }
+
+    /**
+     * @covers \qtype_stack\stack_cas_castext2_latex
+     * @covers \qtype_stack\stack_cas_keyval
+     */
+    public function test_display_tree_texput() {
+        $options = new stack_options();
+        $options->set_option('simplify', false);
+
+        $vars = 'tree_texlist:union(tree_texlist,{"boo"});'.
+                "\ntexput(boo, \"\\\\diamond\");";
+        $at1 = new stack_cas_keyval($vars, $options, 123);
+        $this->assertTrue($at1->get_valid());
+
+        $cs2 = $at1->get_session();
+        $at2 = castext2_evaluatable::make_from_source('{@disptree(boo(a,b))@}', 'test-case');
+        $this->assertTrue($at2->get_valid());
+        $cs2->add_statement($at2);
+        $cs2->instantiate();
+
+        $this->assertEquals("<ul class='tree'><li><span class='op'>\(\diamond\)</span><ul><li>" .
+            "<span class='atom'>\(a\)</span></li><li><span class='atom'>\(b\)</span></li></ul></li></ul>",
+            $at2->get_rendered());
+    }
+
+    /**
+     * @covers \qtype_stack\castext2_evaluatable::make_from_source
+     * @covers \qtype_stack\stack_cas_keyval
+     */
+    public function test_stack_csv_formatter() {
+        $options = new stack_options();
+        $options->set_option('simplify', false);
+
+        $vars = 'S1:stack_csv_formatter([[1.24,1.34],[2.23,4.56]],[A,B]);';
+        $at1 = new stack_cas_keyval($vars, $options, 123);
+        $this->assertTrue($at1->get_valid());
+        $cs2 = $at1->get_session();
+        $at2 = castext2_evaluatable::make_from_source('{#S1#}', 'test-case');
+        $this->assertTrue($at2->get_valid());
+        $cs2->add_statement($at2);
+        $cs2->instantiate();
+        $this->assertEquals("[\"%root\",\"A,B\n1.24,1.34\n2.23,4.56\"]", $at2->get_rendered());
+
+        $vars = 'S1:stack_csv_formatter([[1.24,1.34],[2.23,4.56]],[A,B]);';
+        $at1 = new stack_cas_keyval($vars, $options, 123);
+        $this->assertTrue($at1->get_valid());
+        $cs2 = $at1->get_session();
+        $at2 = castext2_evaluatable::make_from_source('{@S1@}', 'test-case');
+        $this->assertTrue($at2->get_valid());
+        $cs2->add_statement($at2);
+        $cs2->instantiate();
+        // We add in some magic to the return to not strip out newlines in the LaTeX representation of strings.
+        $this->assertEquals("A,B\n1.24,1.34\n2.23,4.56", $at2->get_rendered());
+
+        // Extra wrapping does no harm.
+        $vars = 'S1:["%root",stack_csv_formatter([[1.24,1.34],[2.23,4.56]],[A,B])];';
+        $at1 = new stack_cas_keyval($vars, $options, 123);
+        $this->assertTrue($at1->get_valid());
+        $cs2 = $at1->get_session();
+        $at2 = castext2_evaluatable::make_from_source('{@S1@}', 'test-case');
+        $this->assertTrue($at2->get_valid());
+        $cs2->add_statement($at2);
+        $cs2->instantiate();
+        $this->assertEquals("A,B\n1.24,1.34\n2.23,4.56", $at2->get_rendered());
+    }
+
+    /**
+     * @covers \qtype_stack\castext2_evaluatable::make_from_source
+     * @covers \qtype_stack\stack_cas_keyval
+     */
+    public function test_stack_lang() {
+        $options = new stack_options();
+        $options->set_option('simplify', false);
+
+        $vars = 'S1:"Hello world";S2:"Hei maailma";';
+        $at1 = new stack_cas_keyval($vars, $options, 123);
+        $cs2 = $at1->get_session();
+        $cs2->add_statement(new stack_secure_loader('%_STACK_LANG:' . '"fi"', 'language setting'), false);
+        $this->assertTrue($at1->get_valid());
+        $textinput = "[[lang code='fi']]{@S2@}[[/lang]][[lang code='en,other']]{@S1@}[[/lang]]";
+        $at2 = castext2_evaluatable::make_from_source($textinput, 'test-case');
+        $this->assertTrue($at2->get_valid());
+        $cs2->add_statement($at2);
+        $cs2->instantiate();
+        $this->assertEquals("Hei maailma", $at2->get_rendered());
+
+        $vars = 'S1:"Hello world";S2:"Hei maailma";';
+        $at1 = new stack_cas_keyval($vars, $options, 123);
+        $cs2 = $at1->get_session();
+        $cs2->add_statement(new stack_secure_loader('%_STACK_LANG:' . '"au"', 'language setting'), false);
+        $this->assertTrue($at1->get_valid());
+        $textinput = "[[lang code='fi']]{@S2@}[[/lang]][[lang code='en,other']]{@S1@}[[/lang]]";
+        $at2 = castext2_evaluatable::make_from_source($textinput, 'test-case');
+        $this->assertTrue($at2->get_valid());
+        $cs2->add_statement($at2);
+        $cs2->instantiate();
+        // The "au" here does not match "other" at this level.  That function is done at the question level.
+        $this->assertEquals("", $at2->get_rendered());
+    }
+
+    /**
+     * @covers \qtype_stack\castext2_evaluatable::make_from_source
+     * @covers \qtype_stack\stack_cas_keyval
+     */
+    public function test_stack_pick_lang() {
+        global $SESSION;
+        // Choose something not English, Australian or Finnish!
+        $SESSION->forcelang = 'cn';
+        $ml = new stack_multilang();
+        $selected = $ml->pick_lang(['fi', 'en', 'other']);
+        $this->assertEquals("other", $selected);
+
+        $options = new stack_options();
+        $options->set_option('simplify', false);
+
+        $vars = 'S1:"Hello world";S2:"Hei maailma";';
+        $at1 = new stack_cas_keyval($vars, $options, 123);
+        $cs2 = $at1->get_session();
+        $cs2->add_statement(new stack_secure_loader('%_STACK_LANG:"' . $selected . '"', 'language setting'), false);
+        $this->assertTrue($at1->get_valid());
+        $textinput = "[[lang code='fi']]{@S2@}[[/lang]][[lang code='en,other']]{@S1@}[[/lang]]";
+        $at2 = castext2_evaluatable::make_from_source($textinput, 'test-case');
+        $this->assertTrue($at2->get_valid());
+        $cs2->add_statement($at2);
+        $cs2->instantiate();
+        $this->assertEquals("Hello world", $at2->get_rendered());
     }
 }

@@ -62,11 +62,6 @@ class ast_filter_998_security_auto_generated_test extends qtype_stack_ast_testca
                       array('emptyParens'),
                       false, true);
 
-        $this->expect('(x+2)(x+3)',
-                      '(x+2)(x+3)',
-                      array('forbiddenWord'),
-                      false, true);
-
         $this->expect('2+log_x(1/(x+b))*x^2',
                       '2+log_x(1/(x+b))*x^2',
                       array('forbiddenFunction'),
@@ -117,11 +112,6 @@ class ast_filter_998_security_auto_generated_test extends qtype_stack_ast_testca
                       array('forbiddenFunction'),
                       false, true);
 
-        $this->expect('cos(2x)(x+1)',
-                      'cos(2*x)(x+1)',
-                      array('forbiddenWord'),
-                      false, true);
-
         $this->expect('cos^2(x)',
                       'cos^2*(x)',
                       array('forbiddenVariable'),
@@ -132,11 +122,6 @@ class ast_filter_998_security_auto_generated_test extends qtype_stack_ast_testca
                       array('forbiddenFunction'),
                       false, true);
 
-        $this->expect('f(x)(2)',
-                      'f(x)(2)',
-                      array('forbiddenWord'),
-                      false, true);
-
         $this->expect('fact(13)',
                       'fact(13)',
                       array('forbiddenFunction'),
@@ -145,6 +130,11 @@ class ast_filter_998_security_auto_generated_test extends qtype_stack_ast_testca
         $this->expect('len(x)',
                       'len(x)',
                       array('forbiddenFunction'),
+                      false, true);
+
+        $this->expect('ln*x',
+                      'ln*x',
+                      array('forbiddenVariable'),
                       false, true);
 
         $this->expect('log_10(x)',
@@ -333,11 +323,6 @@ class ast_filter_998_security_auto_generated_test extends qtype_stack_ast_testca
                       array('unknownUnitsCase'),
                       false, true);
 
-        $this->expect('(x+2)(x+3)',
-                      '(x+2)(x+3)',
-                      array('forbiddenWord'),
-                      false, true);
-
         $this->expect('-b(5-b)',
                       '-b(5-b)',
                       array('unknownUnitsCase'),
@@ -478,11 +463,6 @@ class ast_filter_998_security_auto_generated_test extends qtype_stack_ast_testca
                       array('forbiddenFunction'),
                       false, true);
 
-        $this->expect('cos(2x)(x+1)',
-                      'cos(2*x)(x+1)',
-                      array('forbiddenWord'),
-                      false, true);
-
         $this->expect('cos^2(x)',
                       'cos^2*(x)',
                       array('forbiddenVariable'),
@@ -491,11 +471,6 @@ class ast_filter_998_security_auto_generated_test extends qtype_stack_ast_testca
         $this->expect('dosomething(x,y,z)',
                       'dosomething(x,y,z)',
                       array('forbiddenFunction'),
-                      false, true);
-
-        $this->expect('f(x)(2)',
-                      'f(x)(2)',
-                      array('forbiddenWord'),
                       false, true);
 
         $this->expect('fact(13)',
@@ -516,6 +491,11 @@ class ast_filter_998_security_auto_generated_test extends qtype_stack_ast_testca
         $this->expect('lg(x,a)',
                       'lg(x,a)',
                       array('unknownUnitsCase'),
+                      false, true);
+
+        $this->expect('ln*x',
+                      'ln*x',
+                      array('forbiddenVariable'),
                       false, true);
 
         $this->expect('log_10(x)',
@@ -724,6 +704,11 @@ class ast_filter_998_security_auto_generated_test extends qtype_stack_ast_testca
                       array(),
                       true, false);
 
+        $this->expect('(x+2)(x+3)',
+                      '(x+2)(x+3)',
+                      array(),
+                      true, false);
+
         $this->expect('(x+2)3',
                       '(x+2)*3',
                       array(),
@@ -994,6 +979,11 @@ class ast_filter_998_security_auto_generated_test extends qtype_stack_ast_testca
                       array(),
                       true, false);
 
+        $this->expect('1E23*10^45',
+                      '1E23*10^45',
+                      array(),
+                      true, false);
+
         $this->expect('9.81x10^2*m/s',
                       '9.81*x10^2*m/s',
                       array(),
@@ -1259,6 +1249,11 @@ class ast_filter_998_security_auto_generated_test extends qtype_stack_ast_testca
                       array(),
                       true, false);
 
+        $this->expect('cos(2x)(x+1)',
+                      'cos(2*x)(x+1)',
+                      array(),
+                      true, false);
+
         $this->expect('cos(x)',
                       'cos(x)',
                       array(),
@@ -1351,6 +1346,11 @@ class ast_filter_998_security_auto_generated_test extends qtype_stack_ast_testca
 
         $this->expect('f(x)',
                       'f(x)',
+                      array(),
+                      true, false);
+
+        $this->expect('f(x)(2)',
+                      'f(x)(2)',
                       array(),
                       true, false);
 
@@ -1451,11 +1451,6 @@ class ast_filter_998_security_auto_generated_test extends qtype_stack_ast_testca
 
         $this->expect('ln(x)',
                       'ln(x)',
-                      array(),
-                      true, false);
-
-        $this->expect('ln*x',
-                      'ln*x',
                       array(),
                       true, false);
 
@@ -2014,6 +2009,11 @@ class ast_filter_998_security_auto_generated_test extends qtype_stack_ast_testca
                       array(),
                       true, false);
 
+        $this->expect('1.2*mˆ2',
+                      '1.2*m^2',
+                      array(),
+                      true, false);
+
         $this->expect('/* Comment */x+1',
                       '/* Comment */x+1',
                       array(),
@@ -2142,6 +2142,11 @@ class ast_filter_998_security_auto_generated_test extends qtype_stack_ast_testca
 
         $this->expect('(x*y)*z',
                       '(x*y)*z',
+                      array(),
+                      true, false);
+
+        $this->expect('(x+2)(x+3)',
+                      '(x+2)(x+3)',
                       array(),
                       true, false);
 
@@ -2417,6 +2422,11 @@ class ast_filter_998_security_auto_generated_test extends qtype_stack_ast_testca
 
         $this->expect('23.2 x10^5',
                       '23.2*x10^5',
+                      array(),
+                      true, false);
+
+        $this->expect('1E23*10^45',
+                      '1E23*10^45',
                       array(),
                       true, false);
 
@@ -2770,6 +2780,11 @@ class ast_filter_998_security_auto_generated_test extends qtype_stack_ast_testca
                       array(),
                       true, false);
 
+        $this->expect('cos(2x)(x+1)',
+                      'cos(2*x)(x+1)',
+                      array(),
+                      true, false);
+
         $this->expect('cos(x)',
                       'cos(x)',
                       array(),
@@ -2862,6 +2877,11 @@ class ast_filter_998_security_auto_generated_test extends qtype_stack_ast_testca
 
         $this->expect('f(x)',
                       'f(x)',
+                      array(),
+                      true, false);
+
+        $this->expect('f(x)(2)',
+                      'f(x)(2)',
                       array(),
                       true, false);
 
@@ -2972,11 +2992,6 @@ class ast_filter_998_security_auto_generated_test extends qtype_stack_ast_testca
 
         $this->expect('ln(x)',
                       'ln(x)',
-                      array(),
-                      true, false);
-
-        $this->expect('ln*x',
-                      'ln*x',
                       array(),
                       true, false);
 
@@ -3552,6 +3567,11 @@ class ast_filter_998_security_auto_generated_test extends qtype_stack_ast_testca
 
         $this->expect('1.2*m**2',
                       '1.2*m**2',
+                      array(),
+                      true, false);
+
+        $this->expect('1.2*mˆ2',
+                      '1.2*m^2',
                       array(),
                       true, false);
 

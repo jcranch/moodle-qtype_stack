@@ -20,6 +20,11 @@ require_once(__DIR__ . '/filter.interface.php');
 /**
  * AST filter that simplifies compiled CASText, the aim is to merge
  * as much as possible down to as simple as possible parts.
+ *
+ * Note that we intentionally do not simplify too much inside JSXGraphs.
+ * This is due to the MecLib library tending to load large blobs and
+ * it would be silly to join them with small modifications and end up
+ * storing largely similar content during the static string extraction.
  */
 class stack_ast_filter_602_castext_simplifier implements stack_cas_astfilter {
 
@@ -27,7 +32,7 @@ class stack_ast_filter_602_castext_simplifier implements stack_cas_astfilter {
     // Is a node of the form ["%root",...].
     private static function is_castext($node) {
         if ($node instanceof MP_List && count($node->items) > 0 && $node->items[0] instanceof MP_String) {
-            return $node->items[0] === "%root";
+            return $node->items[0]->value === "%root";
         }
         return false;
     }
@@ -199,29 +204,49 @@ class stack_ast_filter_602_castext_simplifier implements stack_cas_astfilter {
                         }
                     }
                 }
-                // We may also have simplified everything out.
-                if (self::is_castext($node)) {
-                    if (count($node->items) === 2 && $node->items[1] instanceof MP_String) {
-                        // A concatenation of a single string, can be removed.
+                // We may also have simplified everything out. Or down to strings that can be joined.
+                if ($node instanceof MP_List && count($node->items) > 1 &&
+                    $node->items[0] instanceof MP_String && (
+                        $node->items[0]->value === '%root' ||
+                        $node->items[0]->value === 'demarkdown' ||
+                        $node->items[0]->value === 'demoodle' ||
+                        $node->items[0]->value === 'htmlformat')) {
+                    if ($node->items[0]->value === '%root' && count($node->items) === 2 && $node->items[1] instanceof MP_String) {
+                        // A concatenation of a single string, can be removed. If %root.
                         $node->parentnode->replace($node, $node->items[1]);
                         return false;
                     }
 
-                    // The root nodes represent simple string concateations
-                    // if the arguments are strings we can simply do
-                    // the concatenation in advance and if we end with
-                    // 1 argument we can unwrap the thing.
                     $newitems = castext2_parser_utils::string_list_reduce($node->items, true);
                     if (count($newitems) < count($node->items)) {
-                        if (count($newitems) === 2) {
+                        if (count($newitems) === 2 && $node->items[0]->value === '%root') {
                             // The second term is something evaluating to
-                            // string.
+                            // string. If %root.
                             $node->parentnode->replace($node, $newitems[1]);
                             $newitems[1]->position['castext'] = true;
                             return false;
                         }
 
                         $node->items = $newitems;
+                        foreach ($node->items as $item) {
+                            $item->position['castext'] = true;
+                        }
+                        return false;
+                    }
+                }
+
+                // Certain paramtric blocks can have joinable content.
+                if ($node instanceof MP_List && count($node->items) > 3 &&
+                    $node->items[0] instanceof MP_String && (
+                        $node->items[0]->value === 'iframe' ||
+                        $node->items[0]->value === 'style' ||
+                        $node->items[0]->value === 'script')) {
+                    // 0 is name and 1 is parameters.
+                    $joinable = array_slice($node->items, 2);
+
+                    $newitems = castext2_parser_utils::string_list_reduce($joinable, true);
+                    if (count($newitems) + 2 < count($node->items)) {
+                        $node->items = array_merge(array_slice($node->items, 0, 2), $newitems);
                         foreach ($node->items as $item) {
                             $item->position['castext'] = true;
                         }
@@ -240,14 +265,14 @@ class stack_ast_filter_602_castext_simplifier implements stack_cas_astfilter {
                     while ($p !== null) {
                         if ($p instanceof MP_List && count($p->items) > 0 && $p->items[0] instanceof MP_String &&
                             ($p->items[0]->value === 'demoodle' || $p->items[0]->value === 'demarkdown' ||
-                                    $p->items[0]->value === 'htmlformat' || $p->items[0]->value === 'jsxgraph' ||
+                                    $p->items[0]->value === 'htmlformat' || $p->items[0]->value === 'iframe' ||
                                     $p->items[0]->value === 'textdownload')) {
                             // That or above is somethign one needs to update if we add new format tuning blocks.
                             $good = false;
                             if ($p->items[0]->value === $node->items[0]->value) {
                                 $same = true;
                             }
-                            if ($node->items[0]->value === 'htmlformat' && ($p->items[0]->value === 'jsxgraph' ||
+                            if ($node->items[0]->value === 'htmlformat' && ($p->items[0]->value === 'iframe' ||
                                     $p->items[0]->value === 'textdownload')) {
                                 // JSXGraph and textdownload are blocks that enforce specific formats.
                                 $same = true;
@@ -302,7 +327,8 @@ class stack_ast_filter_602_castext_simplifier implements stack_cas_astfilter {
         };
 
         // @codingStandardsIgnoreStart
-        $ast->callbackRecurse($process, true);
+        while ($ast->callbackRecurse($process) !== true) {
+        }
         // @codingStandardsIgnoreEnd
 
         return $ast;

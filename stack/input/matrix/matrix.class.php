@@ -29,7 +29,8 @@ class stack_matrix_input extends stack_input {
         'simp' => false,
         'allowempty' => false,
         'consolidatesubscripts' => false,
-        'checkvars' => 0
+        'checkvars' => 0,
+        'validator' => false
     );
 
     public function adapt_to_model_answer($teacheranswer) {
@@ -79,7 +80,7 @@ class stack_matrix_input extends stack_input {
         $allblank = true;
         foreach ($contents as $row) {
             foreach ($row as $val) {
-                if (!('' == trim($val) or '?' == $val or 'null' == $val)) {
+                if (!('' == trim($val) || '?' == $val || 'null' == $val)) {
                     $allblank = false;
                 }
             }
@@ -283,7 +284,7 @@ class stack_matrix_input extends stack_input {
                     $val = '';
                 }
                 $name = $fieldname.'_sub_'.$i.'_'.$j;
-                $xhtml .= '<td><input type="text" name="'.$name.'" value="'.$val.'" size="'.
+                $xhtml .= '<td><input type="text" id="'.$name.'" name="'.$name.'" value="'.$val.'" size="'.
                         $this->parameters['boxWidth'].'"'.$attr.'></td>';
             }
 

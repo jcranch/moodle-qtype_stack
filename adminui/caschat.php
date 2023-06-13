@@ -29,6 +29,8 @@ require_once($CFG->libdir . '/questionlib.php');
 require_once(__DIR__ . '/../locallib.php');
 require_once(__DIR__ . '/../stack/utils.class.php');
 require_once(__DIR__ . '/../stack/options.class.php');
+require_once(__DIR__ . '/../stack/cas/secure_loader.class.php');
+require_once(__DIR__ . '/../stack/cas/ast.container.class.php');
 require_once(__DIR__ . '/../stack/cas/castext2/castext2_evaluatable.class.php');
 require_once(__DIR__ . '/../stack/cas/keyval.class.php');
 
@@ -39,6 +41,7 @@ $questionid = optional_param('questionid', null, PARAM_INT);
 
 if (!$questionid) {
     $context = context_system::instance();
+    $PAGE->set_context($context);
     require_capability('qtype/stack:usediagnostictools', $context);
     $urlparams = array();
 } else {
@@ -53,8 +56,6 @@ if (!$questionid) {
     question_require_capability_on($questiondata, 'view');
 }
 
-$context = context_system::instance();
-$PAGE->set_context($context);
 $PAGE->set_url('/question/type/stack/adminui/caschat.php', $urlparams);
 $title = stack_string('chattitle');
 $PAGE->set_title($title);
@@ -65,7 +66,7 @@ $debuginfo = '';
 $errs = '';
 $varerrs = array();
 
-$vars   = optional_param('vars', '', PARAM_RAW);
+$vars   = optional_param('maximavars', '', PARAM_RAW);
 $string = optional_param('cas', '', PARAM_RAW);
 $simp   = optional_param('simp', '', PARAM_RAW);
 
@@ -80,7 +81,7 @@ if ('on' == $simp) {
     $simp = false;
 }
 // Initially simplification should be on.
-if (!$vars and !$string) {
+if (!$vars && !$string) {
     $simp = true;
 }
 
@@ -92,14 +93,25 @@ if ($string) {
     $session = new stack_cas_session2(array(), $options);
     if ($vars) {
         $keyvals = new stack_cas_keyval($vars, $options, 0);
-        $session = $keyvals->get_session();
+        $keyvals->get_valid();
         $varerrs = $keyvals->get_errors();
+        if ($keyvals->get_valid()) {
+            $kvcode = $keyvals->compile('test');
+            $statements = array();
+            if ($kvcode['contextvariables']) {
+                $statements[] = new stack_secure_loader($kvcode['contextvariables'], 'caschat');
+            }
+            if ($kvcode['statement']) {
+                $statements[] = new stack_secure_loader($kvcode['statement'], 'caschat');
+            }
+        }
     }
 
     $ct = null;
     if (!$varerrs) {
         $ct = castext2_evaluatable::make_from_source($string, 'caschat');
-        $session->add_statement($ct);
+        $statements[] = $ct;
+        $session = new stack_cas_session2($statements, $options);
         if ($ct->get_valid()) {
             $session->instantiate();
             $displaytext  = $ct->get_rendered();
@@ -109,8 +121,13 @@ if ($string) {
         foreach ($session->get_errors(false) as $err) {
             $errs = array_merge($errs, $err);
         }
-        $errs = stack_string_error('exceptionmessage', implode(' ', array_unique($errs)));
-        $debuginfo    = $session->get_debuginfo();
+        if ($errs) {
+            $errs = stack_string_error('errors') . ': ' . implode(' ', array_unique($errs));
+            $errs = html_writer::tag('div', $errs, array('class' => 'error'));
+        } else {
+            $errs = '';
+        }
+        $debuginfo = $session->get_debuginfo();
     }
 }
 
@@ -144,7 +161,7 @@ echo html_writer::tag('form',
             html_writer::tag('h2', stack_string('questionvariables')) .
             html_writer::tag('p', implode($varerrs)) .
             html_writer::tag('p', html_writer::tag('textarea', $vars,
-                    array('cols' => 100, 'rows' => $varlen, 'name' => 'vars'))) .
+                    array('cols' => 100, 'rows' => $varlen, 'name' => 'maximavars'))) .
             html_writer::tag('p', $simp) .
             html_writer::tag('h2', stack_string('castext')) .
             html_writer::tag('p', $errs) .

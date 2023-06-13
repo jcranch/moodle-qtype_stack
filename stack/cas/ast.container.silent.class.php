@@ -200,11 +200,12 @@ class stack_ast_container_silent implements cas_evaluatable {
         }
 
         // As we take no filter options for teachers sourced stuff lets build them from scratch.
-        $filteroptions = array('998_security' => array('security' => 't'));
+        $filteroptions = array('998_security' => ['security' => 't'], '995_ev_modification' => ['flags' => true]);
 
         // Get the filter pipeline. Now we only want the core filtters and
         // append the strict syntax check to the end.
-        $pipeline = stack_parsing_rule_factory::get_filter_pipeline(array('996_call_modification', '998_security',
+        $pipeline = stack_parsing_rule_factory::get_filter_pipeline(array(
+            '995_ev_modification', '996_call_modification', '998_security',
             '999_strict'), $filteroptions, true);
 
         if ($ast !== null) {
@@ -232,8 +233,10 @@ class stack_ast_container_silent implements cas_evaluatable {
 
         $errors = array();
         $answernotes = array();
-        $filteroptions = array('998_security' => array('security' => 't'));
-        $pipeline = stack_parsing_rule_factory::get_filter_pipeline(array('998_security', '999_strict'), $filteroptions, true);
+        $filteroptions = array('998_security' => ['security' => 't']);
+
+        $pipeline = stack_parsing_rule_factory::get_filter_pipeline(array('998_security',
+            '999_strict'), $filteroptions, true);
         $ast = $pipeline->filter($ast, $errors, $answernotes, $securitymodel);
 
         $astc = new static;
@@ -934,7 +937,12 @@ class stack_ast_container_silent implements cas_evaluatable {
                 $decimalplaces++;
             }
             if (strtolower($c) == 'e') {
-                $scientificnotation = true;
+                if (($meaningfulldigits + $leadingzeros + $indefinitezeros) > 0) {
+                    $scientificnotation = true;
+                } else {
+                    // If it is an `e` that exists before some numbers skip it.
+                    continue;
+                }
             }
             if ($c == '0') {
                 if ($meaningfulldigits == 0) {
@@ -959,7 +967,8 @@ class stack_ast_container_silent implements cas_evaluatable {
             } else if (ctype_digit($c)) {
                 $meaningfulldigits += $indefinitezeros + 1;
                 $indefinitezeros = 0;
-            } else {
+            } else if ($meaningfulldigits + $leadingzeros + $indefinitezeros > 0) {
+                // If we have seen any digits, before seeing something unexpected, we stop.
                 break;
             }
         }
