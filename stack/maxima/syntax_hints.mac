@@ -1,0 +1,597 @@
+html_escape(s) := s$
+
+check_brackets(s) := block(
+ [x,r],
+ x : parse_brackets(s),
+ r : x[1],
+ if (stackmap_get(r,"status") = "OK") then (
+  return(["",""])
+ ) else (
+  return([apply(show_brackets,cons(s,x)),"bad brackets"])
+ )
+)$
+
+bracket_matchtable["("] : ")"$
+bracket_matchtable["["] : "]"$
+bracket_matchtable["{"] : "}"$
+bracket_matchtable[")"] : "("$
+bracket_matchtable["]"] : "["$
+bracket_matchtable["}"] : "{"$
+
+parse_brackets(s) := block(
+ [opens,closes,i,j,len,maxht,stack,stack0,pairs,status,char,rec,x,h],
+ opens  : ["(","[","{"],
+ closes : [")","]","}"],
+ i : 1,
+ len : slength(s),
+ maxht : 0,
+ stack : [],
+ pairs : [],
+ status : "OK",
+ while (i <= len and status = "OK") do (
+  char : charat(s,i),
+  if (member(char,opens)) then (
+   rec : ["stack_map",["bracketstart",i],["opentype",char],["ht",0]],
+   stack0 : stack,
+   stack : [],
+   for j from 1 thru length(stack0) do (
+    x : stack0[j],
+    h : max(stackmap_get(x,"ht"),j),
+    x : stackmap_set(x,"ht",h),
+    stack : endcons(x,stack),
+    maxht : max(maxht,h)
+   ),
+   stack : cons(rec,stack)
+  ) elseif (member(char,closes)) then (
+   if (length(stack) = 0) then (
+    status : "unmatched close",
+    rec : ["stack_map",["bracketend",i],["closetype",char]]
+   ) else (
+    rec : stack[1],
+    stack : rest(stack),
+    rec : stackmap_set(rec,"bracketend",i),
+    rec : stackmap_set(rec,"closetype",char),
+    if (bracket_matchtable[stackmap_get(rec,"opentype")] = stackmap_get(rec,"closetype")) then (
+     pairs : endcons(rec,pairs)
+    ) else (
+     status : "mismatch"
+    )
+   )
+  ),
+  i : i + 1
+ ),
+ if (status = "OK" and length(stack) > 0) then (
+  rec : stack[1],
+  status : "unmatched open"
+ ),
+ if (status = "OK") then (
+  rec : ["stack_map"]
+ ),
+ rec : stackmap_set(rec,"status",status),
+ return([rec,pairs,maxht])
+)$
+
+show_brackets(s,err,pairs,maxht) := block(
+ [red,len,colstring,chars,i,j,p,h,b,e,msg],
+ red(t) := sconcat("<font color=\"red\">",t,"</font>"),
+ len : slength(s),
+ colstring : s,
+ array(chars,maxht+2,len),
+ for i from 0 thru maxht+1 do (
+  for j from 1 thru len do (
+   chars[i,j] : " "
+  )
+ ),
+ for p in pairs do (
+  h : stackmap_get(p,"ht"),
+  b : stackmap_get(p,"bracketstart"),
+  e : stackmap_get(p,"bracketend"),
+  chars[h+1,b] : stackmap_get(p,"opentype"),
+  chars[h+1,e] : stackmap_get(p,"closetype"),
+  for i from b+1 thru e-1 do (
+   chars[h+1,i] : "-"
+  ),
+  for j from 0 thru h do (
+   chars[j,b] : "|",
+   chars[j,e] : "|"
+  )
+ ),
+ status : stackmap_get(err,"status"), 
+ if (not(status = "OK")) then (
+  e : stackmap_get(err,"bracketend"),
+  if (not(e = und)) then (
+   for j from 0 thru maxht + 1 do (
+    chars[j,e] : red("|")
+   ),
+   colstring : sconcat(substring(colstring,1,e),
+                       red(charat(colstring,e)),
+		       substring(colstring,e+1))
+  ),
+  b : stackmap_get(err,"bracketstart"),
+  if (not(b = und)) then (
+   for j from 0 thru maxht + 1 do (
+    chars[j,b] : red("|")
+   ),
+   colstring : sconcat(substring(colstring,1,b),
+                       red(charat(colstring,b)),
+		       substring(colstring,b+1))
+  )
+ ),
+ if (status = "OK") then (
+  msg : "Your brackets match properly"
+ ) else (
+  msg : "Your brackets do not match properly.<br/>",
+  if (status = "unmatched open") then (
+   msg : sconcat(msg, "The left bracket shown in red does not have a matching right bracket",newline)
+  ) elseif (status = "unmatched open") then (
+   msg : sconcat(msg, "The right bracket shown in red does not have a matching left bracket",newline)
+  ) elseif (status = "mismatch") then (
+   h : stackmap_get(err,"ht"),
+   b : stackmap_get(err,"bracketstart"),
+   e : stackmap_get(err,"bracketend"),
+   chars[h+1,b] : sconcat("<font color=\"red\">",stackmap_get(err,"opentype")),
+   chars[h+1,e] : sconcat(stackmap_get(err,"closetype"),"</font>"),
+   for i from b+1 thru e-1 do (
+    chars[h+1,i] : "-"
+   ),
+   for j from 0 thru h do (
+    chars[j,b] : red("|"),
+    chars[j,e] : red("|")
+   ),
+   for j from h+2 thru maxht do (
+    chars[j,b] : " ",
+    chars[j,e] : " "
+   ),
+   msg : sconcat(msg,"The matching brackets shown in red do not have the same type.<br/>",newline)
+  )
+ ),
+
+ msg : sconcat(msg,newline,"<pre>",newline),
+ for j from h+1 step -1 thru 0 do (
+  for i from 1 thru len do (
+   msg : sconcat(msg,chars[j,i])
+  ),
+  msg : sconcat(msg,newline)
+ ),
+ msg : sconcat(msg,colstring,newline,"</pre>",newline,"<br/>",newline),
+ return (msg)
+)$
+
+is_letter(c) := block([n : cint(c)],return(ev((65 <= n and n <= 90) or (97 <= n and n <= 122),pred)))$
+is_digit(c)  := block([n : cint(c)],return(ev((48 <= n and n <= 57),pred)))$
+is_white(c)  := block([n : cint(c)],return(ev((n = 9 or n = 10 or n = 13 or n = 32),pred)))$
+
+check_stars(s) := block(
+ [bad,len,i,j,a,b,c,msg,note],
+ bad : [],
+ 
+ len : slength(s),
+ for i from 1 thru len do (
+  a : charat(s,i),
+  j : i+1,
+  while (j <= len and is_white(charat(s,j))) do ( j : j + 1 ),
+  if (j <= len) then (
+   b : substring(s,j),
+   c : charat(b,1),
+   if ((is_digit(a) and is_letter(c)) or
+       (is_digit(a) and c = "(") or
+       (a = ")" and is_letter(c)) or
+       (a = ")" and is_digit(c)) or
+       (a = ")" and c = "(") or
+       (is_letter(a) and is_letter(c) and j > i + 1)) then (
+       bad : cons(i,bad)
+   )
+  )
+ ),
+
+ msg : "",
+ note : "",
+ 
+ if (length(bad) > 0) then (
+  redstar : "<font color=\"red\">*</font>",
+  for i in bad do (
+   s : sconcat(substring(s,1,i+1),redstar,substring(s,i+1))
+  ),
+  msg : sconcat("There is a syntax error in your answer. ",
+                "You may need to insert stars in some or all of the indicated places. ",
+                "<br/><tt>",s,"</tt><br/>"),
+  note : "bad stars"
+ ),
+
+ return([msg,note])
+)$
+
+check_minus(s) := block(
+ [note,msg,bad_minus,len,i,j,k,c,t,found],
+ note : "",
+ msg : "",
+ bad_minus : [],
+ len : slength(s),
+ j : sposition("-",s),
+ found : ev(not(j = false),pred),
+ while (found) do (
+  found : false,
+  k : j - 1,
+  while (k > 0 and is_white(charat(s,k))) do ( k : k - 1 ),
+  if (k > 0) then (
+   c : charat(s,k),
+   if (c = "^") then (
+    s3 : substring(s,max(1,k-3),min(k+3,len+1)),
+    s4 : substring(s,max(1,k-4),min(k+3,len+1)),
+    print([j,k,s3,s4]),
+    if (k > 3 and member(s3,["sin^-1","cos^-1","tan^-1"])) then (
+     msg : sconcat(
+      "Your answer contains the expression",
+      newline,"<br/>",newline,"<font color=\"red\"><tt>",
+      substring(s,k-3,k+3),
+      "</tt></font>",newline,"<br/>",newline,
+      "The correct syntax for this is",
+      newline,"<br/>",newline,"<font color=\"green\"><tt>",
+      "arc",substring(s,k-3,k),
+      "</tt></font>",newline,"<br/>",newline
+     ),
+     note : "bad inverse trig"
+    ) elseif (k > 4 and member(s4,["sinh^-1","cosh^-1","tanh^-1"])) then (
+     msg : sconcat(
+      "Your answer contains the expression",
+      newline,"<br/>",newline,"<font color=\"red\"><tt>",
+      substring(s,k-4,k+3),
+      "</tt></font>",newline,"<br/>",newline,
+      "The correct syntax for this is",
+      newline,"<br/>",newline,"<font color=\"green\"><tt>",
+      "arc",substring(s,k-4,k),
+      "</tt></font>",newline,"<br/>",newline
+     ),
+     note : "bad inverse hyperbolic"
+    )
+   ),
+
+   if (member(c,["*","^","/","-"])) then (
+    bad_minus : endcons(j,bad_minus)
+   ),
+
+   if (j < len) then (
+    i : sposition("-",substring(s,j+1)),
+    if (i = false) then (
+     found : false,
+     j : len
+    ) else (
+     found : true,
+     j : j + i
+    )
+   )
+  )
+ ),
+
+ if (length(bad_minus) = 0) then (
+  return(["",""])
+ ),
+
+ t : "",
+ i : 1,
+ for j in bad_minus do (
+  t : sconcat(t,html_escape(substring(s,i,j)),
+              "<font color=\"red\">-</font>"),
+  i : j + 1
+ ),
+ t : sconcat(t,html_escape(substring(s,i))),
+
+if (msg = "") then (
+  msg : sconcat(
+   "<tt><font color=\"blue\">",t,"</font></tt>",
+   newline,"<br/>",newline,
+   "There is a problem with the minus signs shown in red.  Note that
+    <font color=\"blue\">x<sup>-n</sup></font> must be entered as
+    <tt><font color=\"green\">x^(-n)</font></tt> (with brackets), not just
+    as <tt><font color=\"red\">x^-n</font></tt>.  Similarly,
+    you must enter <tt><font color=\"green\">x*(-y)</font></tt>,
+    <tt><font color=\"green\">x/(-y)</font></tt> and
+    <tt><font color=\"green\">-(-x)</font></tt> (or just
+    <tt><font color=\"green\">x</font></tt>) instead of
+    <tt><font color=\"red\">x*-y</font></tt>,
+    <tt><font color=\"red\">x/-y</font></tt> and
+    <tt><font color=\"red\">--x</font></tt>.
+   "
+  )
+ ),
+
+ if (note = "") then (
+  note : "bad minus signs"
+ ),
+
+ return([msg,note])
+)$
+
+all_names(e) := block(
+ [is_name,s,a],
+ is_name(s) := every(alphanumericp,charlist(s)) and not(every(digitcharp,charlist(s))),
+ if (atom(e)) then (
+  s : string(e),
+  if (is_name(s)) then (return({s})) else (return({}))
+ ) else (
+  a : cons(all_names(op(e)),map(all_names,args(e))),
+  return(apply(union,a))
+ )
+)$
+
+greek_letters : [
+"alpha",
+"beta",
+"gamma",
+"delta",
+"epsilon",
+"zeta",
+"eta",
+"theta",
+"iota",
+"kappa",
+"lambda",
+"mu",
+"nu",
+"xi",
+"omicron",
+"pi",
+"rho",
+"sigma",
+"tau",
+"upsilon",
+"phi",
+"chi",
+"psi",
+"omega"
+]$
+
+is_ordinary_name(s) := block(
+ [b,l,i,t],
+ b : charlist(s),
+ l : length(b),
+ i : 1,
+ while (i <= l and is_letter(b[i])) do ( i : i + 1 ),
+ t : substring(s,1,i),
+ if (not(slength(t) = 1 or member(t,greek_letters))) then (return(false)),
+ while (i <= l) do (
+  if (not(is_digit(b[i]))) then ( return(false) ),
+  i : i + 1
+ ),
+
+ return(true)
+)$
+
+basic_functions : [
+ "sin","cos","tan","sec","cosec","csc","cot",
+ "sinh","cosh","tanh","sech","cosech","csch","coth",
+ "asin","acos","atan","asec","acosec","acsc","acot",
+ "asinh","acosh","atanh","asech","acosech","acsch","acoth",
+ "arcsin","arccos","arctan","arcsec","arccosec","arccsc","arccot",
+ "arcsinh","arccosh","arctanh","arcsech","arccosech","arccsch","arccoth",
+ "exp","log","ln"
+]$
+
+ok_names : [
+ "sin","cos","tan","sec","cosec","csc","cot",
+ "sinh","cosh","tanh","sech","cosech","csch","coth",
+ "asin","acos","atan","asec","acosec","acsc","acot",
+ "asinh","acosh","atanh","asech","acosech","acsch","acoth",
+ "arcsin","arccos","arctan","arcsec","arccosec","arccsc","arccot",
+ "arcsinh","arccosh","arctanh","arcsech","arccosech","arccsch","arccoth",
+ "exp","log","ln","abs","re","im","Re","Im","realpart","imagpart","arg",
+ "%pi","%i","%e","and","or","not","nounand","nounor","nounnot"
+]$
+
+is_ok_name(s,[allow_]) := block(
+ [allow],
+ allow : ok_names,
+ if (length(allow_) > 0) then (allow : allow_[1]),
+ return(ev(member(s,allow) or is_ordinary_name(s),pred))
+)$
+
+check_names(e,[allow_]) := block(
+ [allow],
+ allow : ok_names,
+ if (length(allow_) > 0) then (allow : allow_[1]),
+ allow : setify(allow),
+ bad_names : setdifference(all_names(e),allow),
+ bad_names : subset(bad_names,lambda([x],not(is_ok_name(x)))),
+
+ msg : "",
+ if (length(bad_names) > 0) then (
+  msg : sconcat(
+   "Your answer contains the following word(s) that are unrecognised and are likely to be mistakes:",
+   newline,"<br/>",newline,"<font color=\"red\"><tt>",
+   string(bad_names),
+   "</tt></font>",newline,"<br/>",newline,
+    "You may have ",
+    "<ul> ",
+    " <li>entered something like <tt><font color=\"red\">ab</font></tt> for  ",
+    "     <tt><font color=\"green\">a</font></tt>  ",
+    "     times ",
+    "     <tt><font color=\"green\">b</font></tt>,  ",
+    "     instead of <font color=\"green\">a*b</font> ",
+    " </li> ",
+    " <li>misspelled the name of a standard mathematical function, or ",
+    "     used a name not recognized by Stack.   ",
+    " </li>  ",
+    " <li>used capitals instead of lower case letters or vice-versa</li> ",
+    " <li>entered something like ",
+    "     <font color=\"red\"><tt>sin3x</tt></font> ",
+    "     instead of  ",
+    "     <font color=\"green\"><tt>sin(3*x)</tt></font>, or ",
+    "     <font color=\"red\"><tt>lnx</tt></font> instead of  ",
+    "     <font color=\"green\"><tt>ln(x)</tt></font> ",
+    " </li> ",
+    "</ul> ",
+    "<br /> "
+  )
+ ),
+ return(msg)
+)$
+
+has_subvars(e) := block(
+ [],
+ if (subvarp(e)) then return(true),
+ if (atom(e)) then return(false),
+ if (has_subvars(op(e))) then return(true),
+ if (some(has_subvars,args(e))) then return(true),
+ return(false)
+)$
+
+check_sets(s,e) := block(
+ [i,j,k,l,t,curlies],
+
+ if (not(op_usedp(e,"{"))) then return(""),
+
+ curlies : [],
+ i : 1,
+ l : slength(s),
+ while (i <= l) do (
+  t : substring(s,i),
+  j : sposition("{",t),
+  k : sposition("}",t),
+  if (not(k = false)) then (
+   if (not(j = false)) then (
+    j : min(j,k)
+   ) else (
+    j : k
+   )
+  ),
+  if (not(j = false)) then (
+   curlies : cons(i+j-1,curlies),
+   i : i + j
+  ) else (
+   i : l + 1
+  )
+ ),
+
+ if (length(curlies) = 0) then (return("")),
+
+ t : s,
+ for j in curlies do (
+  t : sconcat(html_escape(substring(t,1,j)),
+              "<font color=\"red\">",charat(t,j),"</font>",
+	      html_escape(substring(t,j+1)))
+ ),
+
+ t : sconcat("<tt><font color=\"blue\">",t,"</font></tt>",
+             newline,"<br/>",
+	     "Curly brackets (like <font color='green'><tt>{1,2,3}</tt></font>) ",
+             "are used to denote sets.  If you just want to group algebraic ",
+             "expressions, you must use round brackets ",
+             "(like <font color='green'><tt>(x+y+z)</tt></font>).",
+	     newline,"<br/>",newline),
+ return(t)
+)$
+
+check_lists(s,e) := block(
+ [msg],
+ if(not((op_used(e,"[") or has_subvars(e)) and
+        not(sposition("[",s) = false) and
+	not(sposition("]",s) = false))) then (
+  return("")
+ ),
+
+ msg : sconcat(
+  "Your answer contains square brackets, some or all of which should ",
+  "not be there.  Square brackets should be used for entering lists, ",
+  "vectors and matrices, or for subscripts (eg ",
+  "<font color=\"green\"><tt>x[3]</tt></font> for ", 
+  "<font color=\"blue\">x<sub>3</sub></font>).  ",
+  "If you just want to group terms, you must use round brackets. ",
+  "To enter a set, use curly brackets. ",
+  newline,"<br/>",newline
+ ),
+
+ return(msg)
+)$
+
+check_bad_indeterminates(s,e) := block(
+ [bad,msg],
+ bad : setify(map(string,listofvars(e))),
+ bad : intersect(bad,
+        {"sin","cos","tan","sec","cosec","csc","cot",
+         "sinh","cosh","tanh","sech","cosech","csch","coth",
+         "arcsin","arccos","arctan","arcsec","arccosec","arccsc","arccot",
+         "arcsinh","arccosh","arctanh","arcsech","arccosech","arccsch","arccoth",
+         "exp","log","ln","abs","re","im","Re","Im","realpart","imagpart","arg"}),
+ if (length(bad) = 0) then return(""),
+ msg : sconcat(
+  "Your answer uses the following functions as algebraic indeterminates: ",
+  newline,"<br/>",newline,
+  "<font color=\"red\"><tt>",simplode(bad,","),"</tt></font>",
+  newline,"<br/>",newline,
+  "This probably means that you entered something like ",
+  "<font color='red'><tt>sin*(2*x+1)</tt></font> ",
+  "instead of ",
+  "<font color='green'><tt>sin(2*x+1)</tt></font>, ",
+  "or ",
+  "<font color='red'><tt>exp^(2*x+1)</tt></font> ",
+  "instead of ",
+  "<font color='green'><tt>exp(2*x+1)</tt></font>. "
+ ),
+ return(msg)
+)$
+
+check_vars(sa,ta) := block(
+ [ignored,sv,tv,t],
+
+ ignored : {"e","%e","pi","%pi","i","%i"},
+ 
+ sv : subset(setdifference(all_names(sa),ignored),is_ordinary_name),
+ tv : subset(setdifference(all_names(ta),ignored),is_ordinary_name),
+
+ t : ["stack_map",
+      ["extra",sort(listify(setdifference(sv,tv)))],
+      ["missing",sort(listify(setdifference(tv,sv)))],
+      ["correct",sort(listify(intersection(tv,sv)))]],
+
+ return(t)
+)$
+
+/* incomplete */
+check_algebraic(sa,vars) := block(
+ [],
+
+ if not(map(slength,vars) = {1}) then return(false),
+
+ names : setdifference(all_names(sa),union(vars,ok_names)),
+ lcvars : map(sdowncase,vars),
+ ok : true,
+ msg : "",
+ 
+ for n in names do (
+  lcn : sdowncase(n),
+  ucn : supcase(n),
+  if (member(lcn,lcvars)) then (
+   goodn : if member(lcn,vars) then lcn else ucn,
+   badn  : if member(lcn,vars) then ucn else lcn,
+   msg : sconcat(
+    "Your answer involves the variable ",
+    "<tt><font color=\"red\">",badn,"</font></tt>, ",
+    "which is not relevant for this question. ",
+    "Perhaps you mean ",
+    "<tt><font color=\"red\">",goodn,"</font></tt> instead. ",
+    "(Remember that Stack is case-sensitive)"
+   ),
+   return(msg)
+  ) elseif(slength(n) > 1) then (
+   chars : charlist(n),
+   if (alphanumericp(chars[1]) and alphanumericp(chars[2])) then (
+    i : 2,
+    while(i < length(chars) and alphanumericp(chars[i+1])) do (i : i + 1),
+    chars : firstn(chars,i),
+    g(x) := sconcat("<tt><font color=\"green\">",s,"</font></tt>"),
+    greenchars : map(g,chars),
+    msg : sconcat(
+     "Your answer involves the variable ",
+     g(implode(chars)),
+     ", which is not relevant in this problem. ",
+     "Perhaps you meant the product of ",
+     implode(firstn(greenchars,length(greenchars) - 1),", "),
+     " and ",last(greenchars)," instead, in which case you should enter ",
+     implode(greenchars,"<tt><font color=\"red\">*</font></tt>"),"."
+    ),
+    return(msg)
+   )
+  )
+ ),
+ if (slength(msg) > 0) then return(msg)
+)$
