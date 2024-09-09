@@ -199,6 +199,15 @@ This page exposes the results of running answer tests on STACK test cases.  This
 <tr class="pass">
   <td class="cell c0">AlgEquiv</td>
   <td class="cell c1"><span style="color:green;"><i class="fa fa-check"></i></span></td>
+  <td class="cell c2"><pre>1/(R-r)</pre></td>
+  <td class="cell c3"><pre>1</pre></td>
+  <td class="cell c4"></td>
+  <td class="cell c5">0</td>
+  <td class="cell c6"></td>
+</tr>
+<tr class="pass">
+  <td class="cell c0">AlgEquiv</td>
+  <td class="cell c1"><span style="color:green;"><i class="fa fa-check"></i></span></td>
   <td class="cell c2"><pre>exdowncase(X)</pre></td>
   <td class="cell c3"><pre>x</pre></td>
   <td class="cell c4"></td>
@@ -474,6 +483,33 @@ i/15))</pre></td>
   <td class="cell c1"><span style="color:green;"><i class="fa fa-check"></i></span></td>
   <td class="cell c2"><pre>x</pre></td>
   <td class="cell c3"><pre>sqrt(x^2)</pre></td>
+  <td class="cell c4"></td>
+  <td class="cell c5">0</td>
+  <td class="cell c6"></td>
+</tr>
+<tr class="pass">
+  <td class="cell c0">AlgEquiv</td>
+  <td class="cell c1"><span style="color:green;"><i class="fa fa-check"></i></span></td>
+  <td class="cell c2"><pre>&#039;root(x)</pre></td>
+  <td class="cell c3"><pre>x^(1/2)</pre></td>
+  <td class="cell c4"></td>
+  <td class="cell c5">1</td>
+  <td class="cell c6"></td>
+</tr>
+<tr class="pass">
+  <td class="cell c0">AlgEquiv</td>
+  <td class="cell c1"><span style="color:green;"><i class="fa fa-check"></i></span></td>
+  <td class="cell c2"><pre>&#039;root(x,m)</pre></td>
+  <td class="cell c3"><pre>x^(1/m)</pre></td>
+  <td class="cell c4"></td>
+  <td class="cell c5">1</td>
+  <td class="cell c6"></td>
+</tr>
+<tr class="pass">
+  <td class="cell c0">AlgEquiv</td>
+  <td class="cell c1"><span style="color:green;"><i class="fa fa-check"></i></span></td>
+  <td class="cell c2"><pre>x</pre></td>
+  <td class="cell c3"><pre>&#039;root(x^2)</pre></td>
   <td class="cell c4"></td>
   <td class="cell c5">0</td>
   <td class="cell c6"></td>
@@ -1652,7 +1688,7 @@ i,i),i,8)</pre></td>
 </tr>
 <tr class="pass">
   <td class="cell c0"><td colspan="2"></td></td>
-  <td class="cell c1"><td colspan="4">The following entries are incorrect, although they may appear in a simplified form from that which you actually entered. <span class="filter_mathjaxloader_equation"><span class="nolink">\[\left \{5-x > 0\,{\mbox{ and }}\, x-1 > 0 \right \}\]</span></span></td></td>
+  <td class="cell c1"><td colspan="4">The following entries are incorrect, although they may appear in a simplified form from that which you actually entered. <span class="filter_mathjaxloader_equation"><span class="nolink">\[\left \{5-x &gt; 0\,{\text{ and }}\, x-1 > 0 \right \}\]</span></span></td></td>
 </tr>
 <tr class="notes">
   <td class="cell c0"><td colspan="6">Equivalence for elements of sets is different from expressions: see docs.</td></td>
@@ -1703,6 +1739,47 @@ rue)),simp)</pre></td>
   <td class="cell c3"><pre>ev(radcan(ratsimp({(-sqrt(5)/s
 qrt(2))-2,sqrt(5)/sqrt(2)-2},a
 lgebraic:true)),simp)</pre></td>
+  <td class="cell c4"></td>
+  <td class="cell c5">1</td>
+  <td class="cell c6"></td>
+</tr>
+<tr class="pass">
+  <td class="cell c0">AlgEquiv</td>
+  <td class="cell c1"><span style="color:green;"><i class="fa fa-check"></i></span></td>
+  <td class="cell c2"><pre>(a^b)^c</pre></td>
+  <td class="cell c3"><pre>a^(b*c)</pre></td>
+  <td class="cell c4"></td>
+  <td class="cell c5">0</td>
+  <td class="cell c6"></td>
+</tr>
+<tr class="pass">
+  <td class="cell c0">AlgEquiv</td>
+  <td class="cell c1"><span style="color:green;"><i class="fa fa-check"></i></span></td>
+  <td class="cell c2"><pre>ev(radcan((a^b)^c),radexpand:a
+ll,simp)</pre></td>
+  <td class="cell c3"><pre>a^(b*c)</pre></td>
+  <td class="cell c4"></td>
+  <td class="cell c5">1</td>
+  <td class="cell c6"></td>
+</tr>
+<tr class="pass">
+  <td class="cell c0">AlgEquiv</td>
+  <td class="cell c1"><span style="color:green;"><i class="fa fa-check"></i></span></td>
+  <td class="cell c2"><pre>(n+1)^((n+2)/(n+1))/(n+2)</pre></td>
+  <td class="cell c3"><pre>1/(n+2)*((n+1)^(1/(n+1)))^(n+2
+)</pre></td>
+  <td class="cell c4"></td>
+  <td class="cell c5">0</td>
+  <td class="cell c6"></td>
+</tr>
+<tr class="pass">
+  <td class="cell c0">AlgEquiv</td>
+  <td class="cell c1"><span style="color:green;"><i class="fa fa-check"></i></span></td>
+  <td class="cell c2"><pre>ev(radcan((n+1)^((n+2)/(n+1))/
+(n+2)),radexpand:all,simp)</pre></td>
+  <td class="cell c3"><pre>ev(radcan(1/(n+2)*((n+1)^(1/(n
++1)))^(n+2)),radexpand:all,sim
+p)</pre></td>
   <td class="cell c4"></td>
   <td class="cell c5">1</td>
   <td class="cell c6"></td>
@@ -2494,6 +2571,15 @@ k^2+4*k-12)}</pre></td>
 <tr class="pass">
   <td class="cell c0">AlgEquiv</td>
   <td class="cell c1"><span style="color:green;"><i class="fa fa-check"></i></span></td>
+  <td class="cell c2"><pre>2=3</pre></td>
+  <td class="cell c3"><pre>2=4</pre></td>
+  <td class="cell c4"></td>
+  <td class="cell c5">1</td>
+  <td class="cell c6">ATEquation_empty</td>
+</tr>
+<tr class="pass">
+  <td class="cell c0">AlgEquiv</td>
+  <td class="cell c1"><span style="color:green;"><i class="fa fa-check"></i></span></td>
   <td class="cell c2"><pre>none</pre></td>
   <td class="cell c3"><pre>1=2</pre></td>
   <td class="cell c4"></td>
@@ -2799,8 +2885,8 @@ k^2+4*k-12)}</pre></td>
 <tr class="pass">
   <td class="cell c0">AlgEquiv</td>
   <td class="cell c1"><span style="color:green;"><i class="fa fa-check"></i></span></td>
-  <td class="cell c2"><pre>single_variable_solver_real(mi
-nf &lt;= x)</pre></td>
+  <td class="cell c2"><pre>stack_single_variable_solver(m
+inf &lt;= x)</pre></td>
   <td class="cell c3"><pre>co(minf,inf)</pre></td>
   <td class="cell c4"></td>
   <td class="cell c5">1</td>
@@ -2809,8 +2895,8 @@ nf &lt;= x)</pre></td>
 <tr class="pass">
   <td class="cell c0">AlgEquiv</td>
   <td class="cell c1"><span style="color:green;"><i class="fa fa-check"></i></span></td>
-  <td class="cell c2"><pre>single_variable_solver_real(-i
-nf &lt;= x)</pre></td>
+  <td class="cell c2"><pre>stack_single_variable_solver(-
+inf &lt;= x)</pre></td>
   <td class="cell c3"><pre>co(minf,inf)</pre></td>
   <td class="cell c4"></td>
   <td class="cell c5">1</td>
@@ -2819,8 +2905,8 @@ nf &lt;= x)</pre></td>
 <tr class="pass">
   <td class="cell c0">AlgEquiv</td>
   <td class="cell c1"><span style="color:green;"><i class="fa fa-check"></i></span></td>
-  <td class="cell c2"><pre>single_variable_solver_real(x 
-&lt;= inf)</pre></td>
+  <td class="cell c2"><pre>stack_single_variable_solver(x
+ &lt;= inf)</pre></td>
   <td class="cell c3"><pre>oc(minf,inf)</pre></td>
   <td class="cell c4"></td>
   <td class="cell c5">1</td>
@@ -2829,8 +2915,8 @@ nf &lt;= x)</pre></td>
 <tr class="pass">
   <td class="cell c0">AlgEquiv</td>
   <td class="cell c1"><span style="color:green;"><i class="fa fa-check"></i></span></td>
-  <td class="cell c2"><pre>single_variable_solver_real(mi
-nf &lt;= x)</pre></td>
+  <td class="cell c2"><pre>stack_single_variable_solver(m
+inf &lt;= x)</pre></td>
   <td class="cell c3"><pre>oo(minf,inf)</pre></td>
   <td class="cell c4"></td>
   <td class="cell c5">0</td>
@@ -3974,6 +4060,24 @@ x-(2/3)*(sqrt(2/3))*x^2+(4/9)*
   <td class="cell c5">1</td>
   <td class="cell c6"></td>
 </tr>
+<tr class="pass">
+  <td class="cell c0">AlgEquiv</td>
+  <td class="cell c1"><span style="color:green;"><i class="fa fa-check"></i></span></td>
+  <td class="cell c2"><pre>binomial(58,[9,15,20,14])</pre></td>
+  <td class="cell c3"><pre>binomial(58,[15,9,20,14])</pre></td>
+  <td class="cell c4"></td>
+  <td class="cell c5">1</td>
+  <td class="cell c6"></td>
+</tr>
+<tr class="pass">
+  <td class="cell c0">AlgEquiv</td>
+  <td class="cell c1"><span style="color:green;"><i class="fa fa-check"></i></span></td>
+  <td class="cell c2"><pre>binomial(x,[a,b,c])</pre></td>
+  <td class="cell c3"><pre>binomial(x,[b,c,a])</pre></td>
+  <td class="cell c4"></td>
+  <td class="cell c5">1</td>
+  <td class="cell c6"></td>
+</tr>
 <tr class="notes">
   <td class="cell c0"><td colspan="6">Unevaluated derviatives</td></td>
 </tr>
@@ -4473,7 +4577,7 @@ qrt(34-2*sqrt(17))-2*sqrt(34+2
 </tr>
 <tr class="pass">
   <td class="cell c0"><td colspan="2"></td></td>
-  <td class="cell c1"><td colspan="4">The following entries are incorrect, although they may appear in a simplified form from that which you actually entered. <span class="filter_mathjaxloader_equation"><span class="nolink">\[\left \{{\rm not}\left( A \right)\,{\mbox{ or }}\, B \right \}\]</span></span></td></td>
+  <td class="cell c1"><td colspan="4">The following entries are incorrect, although they may appear in a simplified form from that which you actually entered. <span class="filter_mathjaxloader_equation"><span class="nolink">\[\left \{{\rm not}\left( A \right)\,{\text{ or }}\, B \right \}\]</span></span></td></td>
 </tr>
 <tr class="pass">
   <td class="cell c0">AlgEquiv</td>
@@ -4486,7 +4590,7 @@ qrt(34-2*sqrt(17))-2*sqrt(34+2
 </tr>
 <tr class="pass">
   <td class="cell c0"><td colspan="2"></td></td>
-  <td class="cell c1"><td colspan="4">The following entries are incorrect, although they may appear in a simplified form from that which you actually entered. <span class="filter_mathjaxloader_equation"><span class="nolink">\[\left \{A\,{\mbox{ implies }}\, B \right \}\]</span></span></td></td>
+  <td class="cell c1"><td colspan="4">The following entries are incorrect, although they may appear in a simplified form from that which you actually entered. <span class="filter_mathjaxloader_equation"><span class="nolink">\[\left \{A\,{\text{ implies }}\, B \right \}\]</span></span></td></td>
 </tr>
 <tr class="notes">
   <td class="cell c0"><td colspan="6">Differential equations</td></td>

@@ -47,6 +47,7 @@ stack_reset(not_used) := block(
   Pi: %pi,
   PI: %pi,
   pi() := %pi,         /* Why does Excel do this?! */
+  i:%i,
   /* Display of matrixes */
   lmxchar: "[",
   /* Sets up randomization, using Maxima's internal random command. */
@@ -89,6 +90,9 @@ simplify(ex) := ev(fullratsimp(ex), simp);      /* Allows simplify to be somethi
 degree(ex,v) := ev(hipow(expand(ex), v), simp); /* See notes on hipow.              */
 
 /* TODO: remove this from install process.                               */
+=======
+/* TO-DO: remove this from install process.                               */
+
 /* ********************************************************************* */
 /*  Evaluate variables are return errors, display, and content forms.    */
 /* ********************************************************************* */
@@ -173,6 +177,7 @@ load("stackunits.mac");
 load("stacktex.lisp");
 load("stackstrings.mac");
 load("fboundp.mac");
+load("functs");
 
 load("stacktex.lisp");
 /* Ensure back compatability with versions before 5.41.0. */
@@ -207,16 +212,15 @@ declare ("#", commutative);
 simplify(ex) := ev(fullratsimp(ex), simp);      /* Allows simplify to be something. */
 degree(ex, v) := ev(hipow(expand(ex), v), simp); /* See notes on hipow.              */
 
-
 make_complexJ(OPT_COMPLEXJ) := block(
   if OPT_COMPLEXJ = "i" then
-    (i:%i,texput(%i,"\\mathrm{i}"))
-  else if OPT_COMPLEXJ = "j" then
-    (%j:%i,j:%i,texput(%i,"\\mathrm{j}"))
-  else if OPT_COMPLEXJ = "symi" then
     (texput(%i,"\\mathrm{i}"))
+  else if OPT_COMPLEXJ = "j" then
+    (kill(i),%j:%i,j:%i,texput(%i,"\\mathrm{j}"))
+  else if OPT_COMPLEXJ = "symi" then
+    (kill(i),texput(%i,"\\mathrm{i}"))
   else if OPT_COMPLEXJ = "symj" then
-    (texput(%i,"\\mathrm{j}"))
+    (kill(i),texput(%i,"\\mathrm{j}"))
   else true
 )$
 
@@ -235,15 +239,15 @@ texput(multsgnonlyfornumberssym, "\\times")$
 multsgnonlyfornumbers(e) := block([arglist, resstr, a, lastisnum, isnum, multsgn, str],
     arglist: args(e),
     a: pop(arglist),
-    resstr: if (safe_op(a) = "-" or (real_numberp(a) and is(a<0))) then sconcat("\\left(", tex1(a), "\\right)")
+    resstr: if ev(is(safe_op(a) = "-" or (real_numberp(a) and is(a<0)))=true, simp) then sconcat("\\left(", tex1(a), "\\right)")
                 else if (atom(a) or is(length(args(a))=1) or safe_op(a) = "^") then tex1(a)
                 else sconcat("\\left(", tex1(a), "\\right)"),
     lastisnum: numberp(a),
     for a in arglist do (
         isnum: numberp(a),
-        multsgn: if (lastisnum and isnum) then tex1(multsgnonlyfornumberssym) else "\\,",
-        str: if (safe_op(a) = "-" or (real_numberp(a) and is(a<0))) then sconcat("\\left(", tex1(a), "\\right)")
-                else if (atom(a) or is(length(args(a))=1) or safe_op(a) = "^") then tex1(a)
+        multsgn: if ev(is(lastisnum and isnum)=true, simp) then tex1(multsgnonlyfornumberssym) else "\\,",
+        str: if ev(is(safe_op(a) = "-" or (real_numberp(a) and is(a<0)))=true, simp) then sconcat("\\left(", tex1(a), "\\right)")
+                else if ev(is(atom(a) or is(length(args(a))=1) or safe_op(a) = "^")=true, simp) then tex1(a)
                 else sconcat("\\left(", tex1(a), "\\right)"),
         resstr: sconcat(resstr, multsgn, " ", str),
         lastisnum: isnum
@@ -253,15 +257,15 @@ multsgnonlyfornumbers(e) := block([arglist, resstr, a, lastisnum, isnum, multsgn
 
 make_logic(OPT_LOGIC) := block(
     if OPT_LOGIC = "lang" then block(
-        texput("and", "\\,{\\mbox{ !AND! }}\\, ", nary),
-        texput("nounand", "\\,{\\mbox{ !AND! }}\\, ", nary),
-        texput("or", "\\,{\\mbox{ !OR! }}\\, ", nary),
-        texput("nounor", "\\,{\\mbox{ !OR! }}\\, ", nary),
-        texput("nand", "\\,{\\mbox{ !NAND! }}\\, ", nary),
-        texput("nor", "\\,{\\mbox{ !NOR! }}\\, ", nary),
-        texput("xor", "\\,{\\mbox{ !XOR! }}\\, ", nary),
-        texput("xnor", "\\,{\\mbox{ !XNOR! }}\\, ", nary),
-        texput("implies", "\\,{\\mbox{ !IMPLIES! }}\\, ", nary),
+        texput("and", "\\,{\\text{ !AND! }}\\, ", nary),
+        texput("nounand", "\\,{\\text{ !AND! }}\\, ", nary),
+        texput("or", "\\,{\\text{ !OR! }}\\, ", nary),
+        texput("nounor", "\\,{\\text{ !OR! }}\\, ", nary),
+        texput("nand", "\\,{\\text{ !NAND! }}\\, ", nary),
+        texput("nor", "\\,{\\text{ !NOR! }}\\, ", nary),
+        texput("xor", "\\,{\\text{ !XOR! }}\\, ", nary),
+        texput("xnor", "\\,{\\text{ !XNOR! }}\\, ", nary),
+        texput("implies", "\\,{\\text{ !IMPLIES! }}\\, ", nary),
         texput("not", "{\\rm !NOT!}", prefix),
         texput("nounnot", "{\\rm !NOT!}", prefix)
     ),
@@ -783,7 +787,7 @@ texput_decimal(ex):= stackfltsep:ex$
         tx:ev(printf(false, stackfltfmt, x), simp)
     ) else if ev(integerp(x),simp) then (
         if (is(stackintfmt="~r") or is(stackintfmt="~:r")) then
-            tx:sconcat("\\mbox{",ev(printf(false, stackintfmt, x), simp),"}")
+            tx:sconcat("\\text{",ev(printf(false, stackintfmt, x), simp),"}")
         else
             tx:ev(printf(false, stackintfmt, x), simp)
     ) else
@@ -806,9 +810,6 @@ stack_disp_sub_script(ex) := block([s],
  if taylorp(ex) then return(ex),
  if safe_setp(ex) then return(apply(set, maplist(stack_disp_sub_script, args(ex)))),
  if arrayp(ex) then return(arraymake(op(ex), maplist(stack_disp_sub_script, args(ex)))),
- /* The following are not, strictly speaking, a subscript issue, but we don't want another recursive call. */
- /* Strip out empty plus operators, which cause problems in display with simp:false.             */
- if is(safe_op(ex)="+") and is(length(args(ex))=1) then return(stack_disp_sub_script(first(args(ex)))),
  /* Now deal with supscripts. */
  if not(atom(ex)) then return(apply(op(ex), maplist(stack_disp_sub_script, args(ex)))),
  if simp_numberp(ex) or stringp(ex) or ex or not(ex) then return(ex),
@@ -920,11 +921,11 @@ texput(matrix, stack_matrix_disp)$
 unary_minus_traverse(ex) := block(
   /* We want atom here, not mapatom to catch a[4]. */
   if atom(ex) then return(ex),
+  if op(ex) = "-" and (is(first(args(ex))=0) or is(first(args(ex))=0.0)) then return(ex),
   if op(ex) = "-" and numberp(first(args(ex))) then return(ev(ex,simp)),
   if arrayp(ex) then return(arraymake(op(ex), maplist(unary_minus_traverse, args(ex)))),
   apply(op(ex), map(unary_minus_traverse, args(ex)) )
 )$
-
 
 /* Pulls out "-" to the front of any expression in a sum of products which needs it. */
 /* For example,   -(2*y^2) is ok                                                     */
@@ -1425,6 +1426,12 @@ ATEquation(SA, SB) := block([keepfloat, RawMark, SA1, SB1, SB2, Rationalex1, Rat
     if algebraic_equivalence(lhs(SB),0) then SB:rhs(SB)=0,
 
     /* Trap edge cases.                                                              */
+    /* If we have empty equations we should bail now.                                */
+    if ATEquation_emptyp(lhs(SB)-rhs(SB)) then
+        if ATEquation_emptyp(lhs(SA)-rhs(SA)) then
+             return([true, true, "ATEquation_empty", ""])
+        else return([true, false, "ATEquation_empty_fail", ""]),
+
     edgecase:false,
     if logic_edgep(SA) or logic_edgep(SB) then edgecase:true,
 
@@ -1447,10 +1454,6 @@ ATEquation(SA, SB) := block([keepfloat, RawMark, SA1, SB1, SB2, Rationalex1, Rat
         if ATEquation_zerop(Rationalex1) then
              return([true, true, "ATEquation_zero", ""])
         else return([true, false, "ATEquation_zero_fail", ""]),
-    if ATEquation_emptyp(lhs(SB)-rhs(SB)) then
-        if ATEquation_emptyp(lhs(SA)-rhs(SA)) then
-             return([true, true, "ATEquation_empty", ""])
-        else return([true, false, "ATEquation_empty_fail", ""]),
     if numberp(float(abs(Rationalex1/Rationalex2))) then
         return([true, true, "", ""]),    Rationalex1:num(ratsimp(Rationalex1)),
     Rationalex2:num(ratsimp(Rationalex2)),
@@ -1516,7 +1519,7 @@ ATInequality(SA, SB) := block([RawMark, FeedBack, AnswerNote, SA1, SB1, samex],
     SB:logical_normal(SB),
     if debug then print("ATInequality(", SA, ", ", SB, ")"),
     if SA = SB then RawMark:true
-    else if single_variable_solver_real(SA)=single_variable_solver_real(SB) then block(
+    else if stack_single_variable_solver(SA)=stack_single_variable_solver(SB) then block(
         RawMark:true,
         AnswerNote:StackAddNote("", "ATInequality_solver")
     ),
@@ -1604,7 +1607,7 @@ ATMatrix(SA, SB) := block([RawMark, FeedBack, AnswerNote, str, ret, SAr, SAc, SB
         if retnew[2] = false then AddFeedBack:true
     ),
     if AddFeedBack = true then block(
-        /* TODO: better answernotes for matrices */
+        /* TO-DO: better answernotes for matrices */
         ret[3]:StackAddNote("", "ATMatrix_wrongentries"),
         ret[4]:StackAddFeedback("", "ATMatrix_wrongentries", stack_disp(SA, "d"))
     ),
@@ -2013,8 +2016,8 @@ ATLogic(SA, SB) := block([SAL, SBL, res],
     if (debug) then print("ATLogic: [", string(SA), " | ", string(SB), "]"),
     if SA = SB then
         return([true, true, StackAddNote("", "ATLogic_True"), ""]),
-    SAP:ev(single_variable_solver_real(SA), simp),
-    SBP:ev(single_variable_solver_real(SB), simp),
+    SAP:ev(stack_single_variable_solver(SA), simp),
+    SBP:ev(stack_single_variable_solver(SB), simp),
     if (debug) then print("ATLogic_to_poly_solver: [", string(SAP), " | ", string(SBP), "]"),
     if SAP=SBP then
         return([true, true, StackAddNote("", "ATLogic_Solver_True"), ""]),
@@ -3354,4 +3357,4 @@ is_lang(code):=ev(is(%_STACK_LANG=code),simp=true)$
 
 /* Stack expects some output with the version number the output happens at */
 /* maximalocal.mac after additional library loading */
-stackmaximaversion:2024012900$
+stackmaximaversion:2024072400$

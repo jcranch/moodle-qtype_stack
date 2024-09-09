@@ -14,6 +14,8 @@ If you are teaching rules of indices to students for the first time this might c
 
 Note the Maxima function `rootscontract` which converts products of roots into roots of products.
 
+Note that Maxima resists the transformation \( (a^b)^c \rightarrow a^{bc} \), which is not always correct.  Instead, and when you know this will be correct, use `radcan` with `radexpand:all`.  For example, `ev(radcan((a^b)^c),radexpand:all,simp)`.
+
 ## Ordering terms
 
 Maxima chooses an order in which to write terms in an expression. By default, this will use reverse lexicographical order for simple sums, so that we have \(b+a\) instead of \(a+b\).
@@ -247,7 +249,7 @@ There are two tests you probably want to apply to the student's answer.
 2. That the expression is "expanded": use `ATExpanded`.
 
 You probably then want to make sure a student has "gathered" like terms.  In particular you'd like to make sure a student has either
-\[ 2\sqrt{5}-3 \mbox{ or } \sqrt{20}-3\]
+\[ 2\sqrt{5}-3 \text{ or } \sqrt{20}-3\]
 but not \[ 5+4\sqrt{2}-2\sqrt{2}+6.\]
 This causes a problem because `ATComAss` thinks that \[ 2\sqrt{5}-3 \neq \sqrt{20}-3.\]
 So you can't use `ATComAss` here, and guarantee that all random variants will work by testing that we really have \(5+4\sqrt{2}\) for example.
@@ -267,7 +269,7 @@ The first of these does not pull out a numerical denominator.  The second does.
 
 ### Trig simplification ###
 
-Maxima does have the ability to make assumptions, e.g. to assume that \(n\) is an integer and then simplify \(3\cos(n\pi/2)^2\) to \( \frac{3}{2}(1+(-1)^n)\).  Assume the student's answer is `ans1` then then define the following feedback variables:
+Maxima does have the ability to make assumptions, e.g. to assume that \(n\) is an integer and then simplify \(3\cos(n\pi/2)^2\) to \( \frac{3}{2}(1+(-1)^n)\).  Assume the student's answer is `ans1` then define the following feedback variables:
 
     declare(n,integer);
     sans1:ev(trigrat(ans1),simp);

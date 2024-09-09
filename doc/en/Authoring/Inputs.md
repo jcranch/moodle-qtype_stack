@@ -266,7 +266,12 @@ Do not use this option in questions in place of the normal quiz settings.
 
 ### Extra option: allowempty ###
 
-Normally a _blank_, i.e. empty, answer has a special status and are not considered "valid".  Hence, a PRT relying on an input left blank will not be traversed.  Answers consisting only of whitespace are also considered as empty.  The extra option `allowempty` allows the input to be empty.  Internally an empty answer will be replaced by the Maxima atom `EMPTYANSWER`.  Internally it is essential that the variable name of the input, (e.g. `ans1`) is really assigned a specific value. The teacher will need to deal with `EMPTYANSWER` tags in the PRT.
+Normally a _blank_, i.e. empty, answer has a special status and are not considered "valid".  Hence, a PRT relying on an input left blank will not be traversed.  Answers consisting only of whitespace are also considered as empty.  The extra option `allowempty` allows the input to be empty.  Internally it is essential that the variable name of the input, (e.g. `ans1`) is really assigned a specific value.
+
+* Most inputs, including the algebraic input, an empty answer will be replaced by the Maxima atom `EMPTYANSWER`.  The teacher will need to deal with `EMPTYANSWER` tags in the PRT.
+* String inputs will return the empty string `""` as an empty answer (to avoid a type-mismatch).
+* Textarea inputs will return `[EMPTYANSWER]` to make sure the answer is always a list (to avoid a type-mismatch).
+* Matrix inputs will return the correct size matrix filled with `null` atoms, e.g. `matrix([null,null],[null,null])`.
 
 We strongly recommend (with many years of experience) that teachers do not use this option without very careful thought!
 
@@ -341,7 +346,7 @@ So, to check both set `checkvars:3`.
 
 The numerical argument provides potential for future-proofing features (e.g. case sensitivity).
 
-### Extra option: validator ###
+### Extra option: validator/feedback ###
 
 This allows an input to add additional bespoke validation, based on a function defined by the question author.  For example, you can define a function which checks if the student's answer is a _list of exactly three floating point numbers_.  See the [validator documentation](../CAS/Validator.md) for more details.
 
@@ -349,6 +354,13 @@ Writing bespoke validators is an advanced feature, but offers two significant be
 
 1. Students are less likely to be penalised on a technicality, especially in high-stakes situations;
 2. Potential response tree authoring becomes much easier and more reliable because the validation acts as a "guard clause" only allowing correctly structured information through to the PRT.  This means type-checking need not be done in the PRT before assessment.
+3. The extra option `validator` is designed to allow you to choose extra expressions to be invalid.  The extra option `feedback` will simply print an additional message to students in the validation feedback.
+
+### Extra option: monospace ###
+
+This option is available for algebraic, numerical, units and varmatrix inputs. It controls if the student's answer is displayed using monospace font. `monospace` and `monospace:true` will force the input to use monospace. `monospace:false` will force proportional font.
+
+If `monospace` is not specified, then the CURRENT system default for the given input type will be used when the question is displayed. 
 
 ## Extra options ##
 

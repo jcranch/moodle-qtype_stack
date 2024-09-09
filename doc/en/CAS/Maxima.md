@@ -18,7 +18,7 @@ Everything in Maxima is either an _atom_ or an _expression_. Atoms are either an
 Maxima is a very weakly typed language.  However, in STACK we need the following "types" of expression:
 
   1. equations, i.e. an expression in which the top operation is an equality sign;
-  2. inequalities, for example \( x<1\mbox{, or }x\leq 1\);
+  2. inequalities, for example \( x<1\text{, or }x\leq 1\);
   3. sets, for example, \(\{1,2,3\}\);
   4. lists, for example, \([1,2,3]\).   In Maxima ordered lists are entered using square brackets, for example as `p:[1,1,2,x^2]`.
     An element is accessed using the syntax `p[1]`.
@@ -65,6 +65,8 @@ To overcome these problems STACK has a command
 
 This always returns a string.  For an atom this is empty, i.e. `""`.  It also sorts out some unary minus problems.
 
+We also have a function `get_safe_ops(ex)` which returns a set of "`safe_op`s" in the expression.  Atoms are ignored.
+
 ### `get_ops(ex)` - all operators
 
 This function returns a set of all operators in an expression.  Useful if you want to find if multiplication is used anywhere in an expression.
@@ -77,7 +79,7 @@ STACK creates a range of additional functions and restricts those available, man
 
 | Command                         | Description
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-| `factorlist(ex)`                | Returns a list of factors of ex without multiplicities.
+| `factorlist(ex)`                | Returns a list of factors of `ex` without multiplicities.  Note, the product of these factors may not be the original expression, and may differ by a factor of \(\pm 1\) due to unary minus extraction and ordering of variables.  For this reason, if you want to decide if `f1` is a factor of `ex` then it's better to check `remainder(ex,f1)` is zero, than membership of the factor list.  E.g. both `remainder(a^2-b^2,b-a)` and `remainder(a^2-b^2,a-b)` are zero, but `factorlist(a^2-b^2)` gives `[b-a,b+a]` which does not contain `a-b` as a factor.
 | `zip_with(f,a,b)`               | This function applies the binary function \(f\) to two lists \(a\) and \(b\) returning a list.  An example is given in adding matrices to [show working](Matrix.md#Showing_working).
 | `coeff_list(ex,v)`              | This function takes an expression `ex` and returns a list of coefficients of `v`.
 | `coeff_list_nz(ex,v)`           | This function takes an expression `ex` and returns a list of nonzero coefficients of `v`.

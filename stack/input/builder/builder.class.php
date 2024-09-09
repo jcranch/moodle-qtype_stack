@@ -152,9 +152,14 @@ class stack_builder_input extends stack_input {
         return array($valid, $errors, $notes, $answer, $caslines);
     }
 
-    public function validate_student_response($response,$options,$teacheranswer,
+    public function validate_student_response($response,
+                                              $options,
+                                              $teacheranswer,
                                               $basesecurity,
-                                              $ajaxinput=false, $castextprocessor = null, $questionvariables = null) {
+                                              $ajaxinput=false,
+                                              $castextprocessor = null,
+                                              $questionvariables = null,
+                                              $lang=null) {
         if ($ajaxinput) {
             $response = $this->ajax_to_response_array($response);
         }

@@ -33,23 +33,24 @@ class stack_cas_castext2_babylon extends stack_cas_castext2_block {
 
     private static $countbabylon = 1;
 
-    public function compile($format, $options):  ? string {
-        $r = '["babylon"';
+    public function compile($format, $options):  ? MP_Node {
+        $r = new MP_List([new MP_String('["babylon"')]);
 
         // We need to transfer the parameters forward.
-        $r .= ',' . stack_utils::php_string_to_maxima_string(json_encode($this
-                ->params));
+        $s = json_encode($this->params);
+        $s = stack_utils::php_string_to_maxima_string($s);
+        $r->items[] = new MP_String($s);
 
         foreach ($this->children as $item) {
             // Assume that all code inside is JavaScript and that we do not
             // want to do the markdown escaping or any other in it.
             $c = $item->compile(castext2_parser_utils::RAWFORMAT, $options);
             if ($c !== null) {
-                $r .= ',' . $c;
+                $r->items[] = $c;
             }
         }
 
-        $r .= ']';
+        $r->items[] = new MP_String(']');
 
         return $r;
     }
@@ -129,7 +130,7 @@ class stack_cas_castext2_babylon extends stack_cas_castext2_block {
         return [];
     }
 
-    public function validate(&$errors=[], $options) : bool {
+    public function validate(&$errors=[], $options=[]) : bool {
         return true;
     }
 }
