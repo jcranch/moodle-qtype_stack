@@ -89,6 +89,9 @@ class stack_cas_castext2_jsxgraph extends stack_cas_castext2_block {
         if (isset($xpars['overridejs'])) {
             unset($xpars['overridejs']);
         }
+        if (isset($xpars['extrajs'])) {
+            unset($xpars['extrajs']);
+        }
 
         // Disable scrolling for this.
         $xpars['scrolling'] = false;
@@ -132,6 +135,13 @@ class stack_cas_castext2_jsxgraph extends stack_cas_castext2_block {
             new MP_String('script'),
             new MP_String(json_encode(['type' => 'text/javascript', 'src' => $js])),
         ]);
+        if (isset($this->params['extrajs'])) {
+            $js = $this->params['extrajs'];
+            $r->items[] = new MP_List([
+                new MP_String('script'),
+                new MP_String(json_encode(['type' => 'text/javascript', 'src' => $js])),
+            ]);
+        }
 
         // We need to define a size for the inner content.
         $width  = '500px';
@@ -316,11 +326,11 @@ class stack_cas_castext2_jsxgraph extends stack_cas_castext2_block {
                         ['var' => $varname]);
                 }
             } else if ($key !== 'width' && $key !== 'height' && $key !== 'aspect-ratio' &&
-                    $key !== 'version' && $key !== 'overridejs' && $key !== 'overridecss') {
+                    $key !== 'version' && $key !== 'overridejs' && $key !== 'extrajs' && $key !== 'overridecss') {
                 $err[] = "Unknown parameter '$key' for jsxgraph-block.";
                 $valid    = false;
                 if ($valids === null) {
-                    $valids = ['width', 'height', 'aspect-ratio', 'version', 'overridecss', 'overridejs'];
+                 $valids = ['width', 'height', 'aspect-ratio', 'version', 'overridecss', 'overridejs', 'extrajs'];
                     // The variable $inputdefinitions is not defined!
                     if ($inputdefinitions !== null) {
                         $tmp    = $root->get_parameter('ioblocks');

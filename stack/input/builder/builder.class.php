@@ -159,7 +159,8 @@ class stack_builder_input extends stack_input {
                                               $ajaxinput=false,
                                               $castextprocessor = null,
                                               $questionvariables = null,
-                                              $lang=null) {
+                                              $lang=null,
+                                              $seed=null) {
         if ($ajaxinput) {
             $response = $this->ajax_to_response_array($response);
         }
