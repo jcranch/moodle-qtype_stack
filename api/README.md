@@ -6,7 +6,7 @@ This folder contains a standalone REST-API for integration of STACK into externa
 
 ### Docker
 
-The STACK API has been designed to be deployed using Docker. Pre-made images are publicly available via a gitlab registry under the identifier `registry.git.rwth-aachen.de/medien-public/moodle-stack`. The used Dockerfile is available [here](docker/Dockerfile).
+The STACK API has been designed to be deployed using Docker. Pre-made images are publicly available via a gitlab registry under the identifier `https://hub.docker.com/u/stackmaths`. The used Dockerfile is available [here](https://github.com/maths/moodle-qtype_stack/blob/master/api/docker/).
 
 E.g. see `https://hub.docker.com/r/mathinstitut/goemaxima` for images.
 
@@ -18,7 +18,7 @@ The image requires maxima to be available via http. The URL can be configured vi
 version: "4.0"
 services:
   maxima:
-    image: mathinstitut/goemaxima:2023121100-latest
+    image: mathinstitut/goemaxima:2024072400-latest
     tmpfs:
       - "/tmp"
     restart: unless-stopped
@@ -31,7 +31,7 @@ services:
       GOEMAXIMA_QUEUE_LEN: 32
     read_only: true
   stack:
-    image: URL to be confirmed
+    image: stackmaths/stackapi:2024072400-latest
     restart: unless-stopped
     ports:
       - '3080:80'
@@ -118,7 +118,7 @@ The grading route returns the following fields:
 - a string field `specificfeedback` containing the rendered specific feedback text
 - a map from the PRT names to strings `prts`, containing the rendered PRT feedback
 - a string map `gradingassets`, containing a list of assets used in the grading response, see [Plots/Assets](#Plots/Assets)
-- a string field `responsesummary` containing a summary of response. (See [Reporting](../doc/en/Authoring/Reporting.md).)
+- a string field `responsesummary` containing a summary of response. (See [Reporting](../doc/en/Authoring/../STACK_question_admin/Reporting.md).)
 - an array of arrays `iframes` of arguments to create iframes to hold JS panels e.g. JSXGraph, GeoGebra
 
 ### Validate route
@@ -281,7 +281,9 @@ At this point a user should just need a working Docker setup and an up-to-date `
 
 This will download the goemaxima and stack-api images and run the containers in an enclosing container. Obviously, config will be the same as for whoever built the stack-api Docker image.
 
-Version numbers will need to match the latest STACK release in `docker-compose.dev.yml`, `docker-compose.yml`, `config_sample.txt` and `config.php`.
+Version numbers will need to match the latest STACK release in `docker-compose.dev.yml`, `docker-compose.yml`, `config_sample.txt` and `config.php`. **(Remember: config.php needs updated locally before building.)**
+
+Pre-built API images are available on Docker Hub at `stackmaths/stackapi`.
 
 ### High level overview
 
@@ -319,7 +321,7 @@ The implementation of the standalone api required some modifications to existing
 To allow the API to return appropriate data describing input configuration, the abstract `stack_input` class has been extended with the following methods:
 
 - `get_api_solution($tavalue)`: Returns the model answer of the input in the same format in which it would be input by the user
-- `get_api_solution_render($tadisplay)`: Returns a rendered version of the model answer of this input.
+- `get_api_solution_render($tadisplay, $ta)`: Returns a rendered version of the model answer of this input.
 - `render_api_data($tavalue)`: Returns an array of configuration options which should be exposed via the API.
 
 The `get_api_solution` and `get_api_solution_render` functions have sensible default implementations, which are only overwritten for more complex input types. The `render_api_data` function on the other hand is abstract, and needs to be implemented by each concrete input type individually.
