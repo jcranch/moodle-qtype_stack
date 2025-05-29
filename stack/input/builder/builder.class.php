@@ -331,6 +331,11 @@ class stack_builder_input extends stack_input {
         return $expected;
     }
 
+    public function render_api_data($tavalue) {
+        // Dummy function to allow code to run. Builder not currently functional in API.
+        throw new stack_exception("Usage of builder is currently not supported.");
+    }
+
     public function add_to_moodleform_testinput(MoodleQuickForm $mform) {
         $mform->addElement('text', $this->name, $this->name);
         $mform->setDefault($this->name, '');
