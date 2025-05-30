@@ -28,18 +28,31 @@ require_once(__DIR__ . '/../block.factory.php');
 
 require_once(__DIR__ . '/root.specialblock.php');
 require_once(__DIR__ . '/stack_translate.specialblock.php');
+require_once(__DIR__ . '/../../../../vle_specific.php');
+
+require_once(__DIR__ . '/iframe.block.php');
+stack_cas_castext2_iframe::register_counter('///OWL_COUNT///');
 
 class stack_cas_castext2_owl extends stack_cas_castext2_block {
 
     private static $countowl = 1;
 
     public function compile($format, $options):  ? MP_Node {
-        $r = new MP_List([new MP_String('["owl"')]);
+        $r = new MP_List([new MP_String('iframe')]);
+
+        $xpars = $this->params;
+        $xpars['scrolling'] = false;
+        $xpars['title'] = 'STACK OWL ///OWL_COUNT///';
 
         // We need to transfer the parameters forward.
-        $s = json_encode($this->params);
+        $s = json_encode($xpars);
         $s = stack_utils::php_string_to_maxima_string($s);
         $r->items[] = new MP_String($s);
+
+        $r->items[] = new MP_List([
+            new MP_String('script'),
+            new MP_String(json_encode(['type' => 'text/javascript', 'src' => 'cors://owl.js'])),
+        ]);
 
         foreach ($this->children as $item) {
             // Assume that all code inside is JavaScript and that we do not
@@ -50,8 +63,6 @@ class stack_cas_castext2_owl extends stack_cas_castext2_block {
             }
         }
 
-        $r->items[] = new MP_String(']');
-
         return $r;
     }
 
@@ -59,7 +70,7 @@ class stack_cas_castext2_owl extends stack_cas_castext2_block {
         return false;
     }
 
-    public function postprocess(array $params, castext2_processor $processor): string {
+    public function postprocess(array $params, castext2_processor $processor, castext2_placeholder_holder $holder): string {
         global $PAGE;
 
         if (count($params) < 3) {
